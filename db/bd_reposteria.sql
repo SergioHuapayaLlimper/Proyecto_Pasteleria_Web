@@ -33,6 +33,7 @@ CREATE TABLE IF NOT EXISTS productos (
     precio       DECIMAL(10,2) NOT NULL,
     imagen_url   VARCHAR(255)  NULL,
     estado       VARCHAR(10)   NOT NULL DEFAULT 'activo',
+    creado_en    TIMESTAMP     NOT NULL DEFAULT CURRENT_TIMESTAMP,
     CONSTRAINT fk_productos_categoria FOREIGN KEY (id_categoria) REFERENCES categorias (id_categoria)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
