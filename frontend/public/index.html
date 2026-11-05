@@ -1,0 +1,152 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Corporación Jorby - Pastelería</title>
+    <link rel="stylesheet" href="styles.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
+</head>
+<body>
+
+    <!-- HEADER -->
+    <header class="header">
+        <div class="logo">
+            <i class="fas fa-birthday-cake"></i>
+            <span>Corporación Jorby</span>
+        </div>
+        <nav class="nav">
+            <a href="#productos">Productos</a>
+            <a href="#ubicacion">Ubicación</a>
+            <a href="#horarios">Horarios</a>
+            <a href="#pagos">Métodos de Pago</a>
+            <a href="#contacto">Contacto</a>
+        </nav>
+        <button id="btn-acceso" class="btn-acceso">
+            <i class="fas fa-user"></i> Acceso
+        </button>
+    </header>
+
+    <!-- HERO -->
+    <section class="hero">
+        <div class="hero-content">
+            <h1>Los mejores postres de la ciudad</h1>
+            <p>Hechos con amor y los mejores ingredientes</p>
+            <a href="#productos" class="btn-primary">Ver Catálogo</a>
+        </div>
+    </section>
+
+    <!-- PRODUCTOS (RF-10) -->
+    <section id="productos" class="seccion">
+        <h2>Nuestros Productos</h2>
+        <div id="catalogo-productos" class="grid-productos">
+            <!-- Se llena dinámicamente con productos.js -->
+        </div>
+    </section>
+
+    <!-- UBICACIÓN (RF-11, RF-12) -->
+    <section id="ubicacion" class="seccion">
+        <h2>¿Dónde encontrarnos?</h2>
+        <div id="info-ubicacion" class="info-ubicacion">
+            <!-- Se llena dinámicamente con productos.js -->
+        </div>
+    </section>
+
+    <!-- HORARIOS (RF-13) -->
+    <section id="horarios" class="seccion">
+        <h2>Horarios de Atención</h2>
+        <p id="info-horarios">Cargando...</p>
+    </section>
+
+    <!-- MÉTODOS DE PAGO (RF-14) -->
+    <section id="pagos" class="seccion">
+        <h2>Métodos de Pago</h2>
+        <p id="info-pagos">Cargando...</p>
+    </section>
+
+    <!-- CONTACTO (RF-15) -->
+    <section id="contacto" class="seccion">
+        <h2>Contacto</h2>
+        <div id="info-contacto">
+            <!-- Se llena dinámicamente -->
+        </div>
+    </section>
+
+    <!-- BOTÓN FLOTANTE WHATSAPP (RF-16, 17, 18) -->
+    <a href="#" id="btn-whatsapp" class="btn-whatsapp" target="_blank" title="Contáctanos por WhatsApp">
+        <i class="fab fa-whatsapp"></i>
+    </a>
+
+    <!-- CARRITO FLOTANTE (HU08) -->
+    <button id="btn-carrito" class="btn-carrito">
+        <i class="fas fa-shopping-cart"></i>
+        <span id="contador-carrito">0</span>
+    </button>
+
+    <!-- MODAL DE ACCESO -->
+    <div id="modal-acceso" class="modal">
+        <div class="modal-content">
+            <span class="close">&times;</span>
+            <h2>Selecciona tu tipo de acceso</h2>
+            <div class="modal-botones">
+                <button id="btn-cliente" class="btn-modal btn-cliente">
+                    <i class="fas fa-user"></i> Cliente
+                </button>
+                <button id="btn-admin" class="btn-modal btn-admin">
+                    <i class="fas fa-user-shield"></i> Administrador
+                </button>
+            </div>
+        </div>
+    </div>
+    
+        <!-- MODAL DEL CARRITO -->
+    <div id="modal-carrito" class="modal-carrito">
+        <div class="carrito-contenido">
+            <button class="carrito-cerrar" id="carrito-cerrar">&times;</button>
+            <h2><i class="fas fa-shopping-cart"></i> Tu Carrito</h2>
+
+            <div id="lista-carrito" class="lista-carrito">
+                <!-- Se llena dinámicamente con cart.js -->
+            </div>
+
+            <div id="total-carrito" class="total-carrito">
+                Total: S/ 0.00
+            </div>
+
+            <!-- FORMULARIO CHECKOUT (RF-24, RF-25) -->
+            <form id="form-checkout" class="form-checkout" style="display:none;">
+                <h3>Datos para tu pedido</h3>
+
+                <label for="cliente-nombre">Nombre completo *</label>
+                <input type="text" id="cliente-nombre" required placeholder="Ej: Juan Pérez">
+
+                <label for="cliente-telefono">Teléfono (WhatsApp) *</label>
+                <input type="tel" id="cliente-telefono" required placeholder="Ej: 987654321">
+
+                <label for="metodo-pago">Método de pago *</label>
+                <select id="metodo-pago" required>
+                    <option value="">-- Selecciona --</option>
+                    <option value="Efectivo">Efectivo</option>
+                    <option value="Yape">Yape</option>
+                </select>
+
+                <div id="error-checkout" class="mensaje-error" style="display:none;"></div>
+
+                <button type="submit" class="btn-confirmar" id="btn-confirmar">
+                    <i class="fas fa-check"></i> Confirmar Pedido
+                </button>
+            </form>
+        </div>
+    </div>
+
+    <!-- FOOTER -->
+    <footer class="footer">
+        <p>&copy; 2024 Corporación Jorby - Todos los derechos reservados</p>
+    </footer>
+
+    <script src="whatsapp.js"></script>
+    <script src="main.js"></script>
+    <script src="productos.js"></script>
+    <script src="cart.js"></script>
+</body>
+</html>

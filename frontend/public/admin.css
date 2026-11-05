@@ -1,0 +1,133 @@
+/* ============================================
+   ESTILOS DEL LOGIN ADMIN
+   ============================================ */
+
+.login-body {
+    background: linear-gradient(135deg, #d4a5a5 0%, #8b5a5a 100%);
+    min-height: 100vh;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    padding: 20px;
+}
+
+.login-container {
+    width: 100%;
+    max-width: 420px;
+}
+
+.login-card {
+    background: white;
+    border-radius: 20px;
+    box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+    overflow: hidden;
+}
+
+.login-logo {
+    background: linear-gradient(135deg, #8b5a5a, #3d2b2b);
+    color: white;
+    padding: 30px;
+    text-align: center;
+}
+
+.login-logo i {
+    font-size: 3rem;
+    margin-bottom: 10px;
+    color: #f5d7d7;
+}
+
+.login-logo h1 {
+    font-size: 1.5rem;
+    margin-bottom: 5px;
+}
+
+.login-logo p {
+    font-size: 0.9rem;
+    opacity: 0.8;
+}
+
+.login-form {
+    padding: 35px 30px;
+}
+
+.login-form h2 {
+    color: #8b5a5a;
+    font-size: 1.3rem;
+    margin-bottom: 25px;
+    text-align: center;
+}
+
+.login-form label {
+    display: block;
+    margin-bottom: 6px;
+    font-weight: 500;
+    font-size: 0.9rem;
+    color: #3d2b2b;
+}
+
+.login-form input {
+    width: 100%;
+    padding: 12px 15px;
+    margin-bottom: 18px;
+    border: 1px solid #ddd;
+    border-radius: 10px;
+    font-size: 1rem;
+    transition: border-color 0.3s;
+}
+
+.login-form input:focus {
+    outline: none;
+    border-color: #8b5a5a;
+    box-shadow: 0 0 0 3px rgba(139, 90, 90, 0.1);
+}
+
+.btn-login {
+    width: 100%;
+    padding: 14px;
+    background: linear-gradient(135deg, #8b5a5a, #3d2b2b);
+    color: white;
+    border: none;
+    border-radius: 10px;
+    font-size: 1rem;
+    font-weight: bold;
+    cursor: pointer;
+    transition: transform 0.2s, box-shadow 0.3s;
+    margin-top: 5px;
+}
+
+.btn-login:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 8px 20px rgba(139, 90, 90, 0.4);
+}
+
+.btn-login:disabled {
+    background: #ccc;
+    cursor: not-allowed;
+    transform: none;
+    box-shadow: none;
+}
+
+.login-error {
+    background: #ffe6e6;
+    color: #c00;
+    padding: 12px;
+    border-radius: 8px;
+    font-size: 0.9rem;
+    margin-bottom: 15px;
+    border-left: 4px solid #c00;
+}
+
+.volver-inicio {
+    display: block;
+    text-align: center;
+    margin-top: 20px;
+    color: #8b5a5a;
+    text-decoration: none;
+    font-size: 0.9rem;
+    transition: color 0.3s;
+}
+
+.volver-inicio:hover {
+    color: #3d2b2b;
+    text-decoration: underline;
+}

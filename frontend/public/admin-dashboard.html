@@ -1,0 +1,302 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Panel Administrativo - Corporación Jorby</title>
+    <link rel="stylesheet" href="admin-dashboard.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
+    <!-- Chart.js para los gráficos -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <!-- SheetJS para exportar a Excel -->
+    <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+</head>
+<body class="dashboard-body">
+
+    <!-- SIDEBAR -->
+    <aside class="sidebar">
+        <div class="sidebar-logo">
+            <i class="fas fa-birthday-cake"></i>
+            <span>Jorby Admin</span>
+        </div>
+
+        <nav class="sidebar-nav">
+            <button class="nav-item activo" data-seccion="dashboard">
+                <i class="fas fa-chart-line"></i> Dashboard
+            </button>
+            <button class="nav-item" data-seccion="productos">
+                <i class="fas fa-box"></i> Productos
+            </button>
+            <button class="nav-item" data-seccion="pedidos">
+                <i class="fas fa-shopping-bag"></i> Pedidos
+            </button>
+            <button class="nav-item" data-seccion="configuracion">
+                <i class="fas fa-cog"></i> Configuración
+            </button>
+        </nav>
+
+        <div class="sidebar-footer">
+            <div class="usuario-info">
+                <i class="fas fa-user-circle"></i>
+                <div>
+                    <p id="nombre-usuario">Administrador</p>
+                    <small>Administrador</small>
+                </div>
+            </div>
+            <button id="btn-logout" class="btn-logout">
+                <i class="fas fa-sign-out-alt"></i> Cerrar Sesión
+            </button>
+        </div>
+    </aside>
+
+    <!-- CONTENIDO PRINCIPAL -->
+    <main class="main-content">
+
+        <!-- SECCIÓN DASHBOARD (HU02 / RF-04, RF-05, RF-06) -->
+        <section id="seccion-dashboard" class="seccion activa">
+            <header class="seccion-header">
+                <h1><i class="fas fa-chart-line"></i> Dashboard</h1>
+                <p>Resumen general del negocio</p>
+            </header>
+
+            <!-- Tarjetas de métricas -->
+            <div class="grid-metricas">
+                <div class="card-metrica">
+                    <div class="card-icon"><i class="fas fa-shopping-bag"></i></div>
+                    <div>
+                        <h3 id="metrica-pedidos">0</h3>
+                        <p>Pedidos Totales</p>
+                    </div>
+                </div>
+                <div class="card-metrica">
+                    <div class="card-icon verde"><i class="fas fa-dollar-sign"></i></div>
+                    <div>
+                        <h3 id="metrica-ventas">S/ 0.00</h3>
+                        <p>Ventas Completadas</p>
+                    </div>
+                </div>
+                <div class="card-metrica">
+                    <div class="card-icon azul"><i class="fas fa-box"></i></div>
+                    <div>
+                        <h3 id="metrica-productos">0</h3>
+                        <p>Productos Activos</p>
+                    </div>
+                </div>
+                <div class="card-metrica">
+                    <div class="card-icon naranja"><i class="fab fa-whatsapp"></i></div>
+                    <div>
+                        <h3 id="metrica-whatsapp">0</h3>
+                        <p>Consultas WhatsApp</p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Gráficos -->
+            <div class="grid-graficos">
+                <div class="card-grafico">
+                    <h3>Pedidos por Estado</h3>
+                    <canvas id="grafico-estados"></canvas>
+                </div>
+                <div class="card-grafico">
+                    <h3>Consultas por Tipo</h3>
+                    <canvas id="grafico-consultas"></canvas>
+                </div>
+            </div>
+
+            <!-- Filtro por fecha + exportar -->
+            <div class="card-filtros">
+                <h3><i class="fas fa-filter"></i> Filtrar por fecha</h3>
+                <div class="filtros-row">
+                    <div>
+                        <label>Desde:</label>
+                        <input type="date" id="filtro-desde">
+                    </div>
+                    <div>
+                        <label>Hasta:</label>
+                        <input type="date" id="filtro-hasta">
+                    </div>
+                    <button id="btn-filtrar" class="btn-primary">
+                        <i class="fas fa-search"></i> Filtrar
+                    </button>
+                    <button id="btn-exportar-metricas" class="btn-exito">
+                        <i class="fas fa-file-excel"></i> Exportar Excel
+                    </button>
+                </div>
+            </div>
+        </section>
+
+        <!-- SECCIÓN PRODUCTOS (HU03 / RF-07, RF-08, RF-09) -->
+        <section id="seccion-productos" class="seccion">
+            <header class="seccion-header">
+                <h1><i class="fas fa-box"></i> Gestión de Productos</h1>
+                <button id="btn-nuevo-producto" class="btn-primary">
+                    <i class="fas fa-plus"></i> Nuevo Producto
+                </button>
+            </header>
+
+            <div class="tabla-container">
+                <table class="tabla">
+                    <thead>
+                        <tr>
+                            <th>Imagen</th>
+                            <th>Nombre</th>
+                            <th>Categoría</th>
+                            <th>Precio</th>
+                            <th>Estado</th>
+                            <th>Acciones</th>
+                        </tr>
+                    </thead>
+                    <tbody id="tabla-productos">
+                        <!-- Se llena con JS -->
+                    </tbody>
+                </table>
+            </div>
+        </section>
+
+        <!-- SECCIÓN PEDIDOS (HU07 / RF-19, RF-20, RF-21) -->
+        <section id="seccion-pedidos" class="seccion">
+            <header class="seccion-header">
+                <h1><i class="fas fa-shopping-bag"></i> Historial de Pedidos</h1>
+            </header>
+
+            <div class="card-filtros">
+                <div class="filtros-row">
+                    <div>
+                        <label>Desde:</label>
+                        <input type="date" id="pedido-desde">
+                    </div>
+                    <div>
+                        <label>Hasta:</label>
+                        <input type="date" id="pedido-hasta">
+                    </div>
+                    <div>
+                        <label>Estado:</label>
+                        <select id="pedido-estado">
+                            <option value="">Todos</option>
+                            <option value="Pendiente">Pendiente</option>
+                            <option value="Completado">Completado</option>
+                            <option value="Cancelado">Cancelado</option>
+                        </select>
+                    </div>
+                    <button id="btn-filtrar-pedidos" class="btn-primary">
+                        <i class="fas fa-search"></i> Filtrar
+                    </button>
+                    <button id="btn-exportar-pedidos" class="btn-exito">
+                        <i class="fas fa-file-excel"></i> Exportar Excel
+                    </button>
+                </div>
+            </div>
+
+            <div class="tabla-container">
+                <table class="tabla">
+                    <thead>
+                        <tr>
+                            <th>Código</th>
+                            <th>Cliente</th>
+                            <th>Teléfono</th>
+                            <th>Método Pago</th>
+                            <th>Total</th>
+                            <th>Estado</th>
+                            <th>Fecha</th>
+                            <th>Acciones</th>
+                        </tr>
+                    </thead>
+                    <tbody id="tabla-pedidos">
+                        <!-- Se llena con JS -->
+                    </tbody>
+                </table>
+            </div>
+        </section>
+
+        <!-- SECCIÓN CONFIGURACIÓN (HU04, HU05) -->
+        <section id="seccion-configuracion" class="seccion">
+            <header class="seccion-header">
+                <h1><i class="fas fa-cog"></i> Configuración del Negocio</h1>
+            </header>
+
+            <form id="form-config" class="form-config">
+                <div class="form-grid">
+                    <div>
+                        <label>Dirección</label>
+                        <input type="text" name="direccion" id="cfg-direccion">
+                    </div>
+                    <div>
+                        <label>Latitud</label>
+                        <input type="text" name="mapa_lat" id="cfg-lat">
+                    </div>
+                    <div>
+                        <label>Longitud</label>
+                        <input type="text" name="mapa_lng" id="cfg-lng">
+                    </div>
+                    <div>
+                        <label>Horario de atención</label>
+                        <input type="text" name="horario_atencion" id="cfg-horario">
+                    </div>
+                    <div>
+                        <label>Métodos de pago</label>
+                        <input type="text" name="metodos_pago" id="cfg-pagos">
+                    </div>
+                    <div>
+                        <label>Teléfono de contacto</label>
+                        <input type="text" name="telefono_contacto" id="cfg-telefono">
+                    </div>
+                    <div>
+                        <label>Correo de contacto</label>
+                        <input type="email" name="correo_contacto" id="cfg-correo">
+                    </div>
+                    <div>
+                        <label>Número de WhatsApp</label>
+                        <input type="text" name="whatsapp_numero" id="cfg-whatsapp">
+                    </div>
+                    <div class="full-width">
+                        <label>Mensaje predeterminado de WhatsApp</label>
+                        <input type="text" name="whatsapp_mensaje" id="cfg-whatsapp-msg">
+                    </div>
+                </div>
+
+                <button type="submit" class="btn-primary">
+                    <i class="fas fa-save"></i> Guardar Cambios
+                </button>
+            </form>
+        </section>
+
+    </main>
+
+    <!-- MODAL PRODUCTO (crear/editar) -->
+    <div id="modal-producto" class="modal">
+        <div class="modal-content">
+            <span class="close" id="cerrar-modal-producto">&times;</span>
+            <h2 id="titulo-modal-producto">Nuevo Producto</h2>
+            <form id="form-producto">
+                <input type="hidden" id="prod-id">
+                <label>Nombre *</label>
+                <input type="text" id="prod-nombre" required>
+
+                <label>Descripción</label>
+                <textarea id="prod-descripcion" rows="2"></textarea>
+
+                <label>Precio (S/) *</label>
+                <input type="number" id="prod-precio" step="0.01" min="0" required>
+
+                <label>Categoría *</label>
+                <input type="text" id="prod-categoria" required>
+
+                <label>URL de imagen</label>
+                <input type="text" id="prod-imagen">
+
+                <label>Estado</label>
+                <select id="prod-estado">
+                    <option value="activo">Activo</option>
+                    <option value="inactivo">Inactivo</option>
+                </select>
+
+                <button type="submit" class="btn-primary">
+                    <i class="fas fa-save"></i> Guardar
+                </button>
+            </form>
+        </div>
+    </div>
+
+    <script src="admin-dashboard.js"></script>
+</body>
+</html>
