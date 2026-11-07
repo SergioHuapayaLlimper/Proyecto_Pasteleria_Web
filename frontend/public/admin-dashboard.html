@@ -222,11 +222,11 @@
                     </div>
                     <div>
                         <label>Latitud</label>
-                        <input type="text" name="mapa_lat" id="cfg-lat">
+                        <input type="text" name="mapa_lat" id="cfg-lat" inputmode="decimal" placeholder="Ej: -12.0464">
                     </div>
                     <div>
                         <label>Longitud</label>
-                        <input type="text" name="mapa_lng" id="cfg-lng">
+                        <input type="text" name="mapa_lng" id="cfg-lng" inputmode="decimal" placeholder="Ej: -77.0428">
                     </div>
                     <div>
                         <label>Horario de atención</label>
@@ -246,15 +246,25 @@
                     </div>
                     <div>
                         <label>Número de WhatsApp</label>
-                        <input type="text" name="whatsapp_numero" id="cfg-whatsapp">
+                        <input type="text" name="whatsapp_numero" id="cfg-whatsapp" inputmode="numeric" placeholder="Ej: 51987654321">
+                        <small class="ayuda-campo">Código de país + número, sin espacios ni "+".</small>
                     </div>
                     <div class="full-width">
                         <label>Mensaje predeterminado de WhatsApp</label>
                         <input type="text" name="whatsapp_mensaje" id="cfg-whatsapp-msg">
                     </div>
+                    <div class="full-width">
+                        <label>Vista previa del mapa</label>
+                        <iframe id="cfg-mapa-preview" class="mapa-preview" title="Vista previa del mapa" loading="lazy"></iframe>
+                        <small class="ayuda-campo">
+                            Para obtener las coordenadas: en Google Maps haz clic derecho sobre el local y copia los números que aparecen (latitud, longitud).
+                        </small>
+                    </div>
                 </div>
 
-                <button type="submit" class="btn-primary">
+                <div id="cfg-mensaje" class="cfg-mensaje" style="display:none;"></div>
+
+                <button type="submit" class="btn-primary" id="btn-guardar-config">
                     <i class="fas fa-save"></i> Guardar Cambios
                 </button>
             </form>

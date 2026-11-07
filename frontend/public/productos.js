@@ -95,8 +95,7 @@ document.addEventListener('DOMContentLoaded', () => {
     // ---- 2. CARGAR CONFIGURACIÓN DEL NEGOCIO ----
     async function cargarConfiguracion() {
         try {
-            const res = await fetch(`${API_BASE}/config`);
-            const config = await res.json();
+            const config = await obtenerConfigNegocio();
 
             const infoUbicacion = document.getElementById('info-ubicacion');
             if (infoUbicacion && config.direccion) {
@@ -131,7 +130,7 @@ document.addEventListener('DOMContentLoaded', () => {
             }
 
             const infoContacto = document.getElementById('info-contacto');
-            if (infoContacto) {
+            if (infoContacto && (config.telefono_contacto || config.correo_contacto)) {
                 const tel = escaparHTML(config.telefono_contacto || '');
                 const correo = escaparHTML(config.correo_contacto || '');
                 infoContacto.innerHTML = `
@@ -140,9 +139,22 @@ document.addEventListener('DOMContentLoaded', () => {
                 `;
             }
 
+            marcarSinDatos();
+
         } catch (error) {
             console.error('Error al cargar configuración:', error);
+            marcarSinDatos();
         }
+    }
+
+    // Si la API no devolvió algún dato, evita que quede "Cargando..." para siempre
+    function marcarSinDatos() {
+        ['info-horarios', 'info-pagos'].forEach(id => {
+            const el = document.getElementById(id);
+            if (el && el.textContent.trim() === 'Cargando...') {
+                el.textContent = 'Información no disponible por el momento.';
+            }
+        });
     }
 
     cargarProductos();

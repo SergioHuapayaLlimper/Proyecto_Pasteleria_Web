@@ -413,15 +413,44 @@ const CAMPOS_CONFIG = {
 
 async function cargarConfiguracion() {
     try {
-        const res = await fetch('/api/config');
+        const res = await fetch('/api/config', { cache: 'no-store' });
         const config = await res.json();
 
         Object.entries(CAMPOS_CONFIG).forEach(([clave, idCampo]) => {
             document.getElementById(idCampo).value = config[clave] || '';
         });
+        actualizarPreviewMapa();
     } catch (error) {
         console.error('Error al cargar configuración:', error);
+        mostrarMensajeConfig('No se pudo cargar la configuración.', 'error');
     }
+}
+
+// Actualiza el mapa de vista previa según la latitud/longitud escritas
+function actualizarPreviewMapa() {
+    const iframe = document.getElementById('cfg-mapa-preview');
+    if (!iframe) return;
+    const lat = document.getElementById('cfg-lat').value.trim();
+    const lng = document.getElementById('cfg-lng').value.trim();
+    if (!lat || !lng || isNaN(lat) || isNaN(lng)) return;
+    const nuevaUrl = `https://www.google.com/maps?q=${encodeURIComponent(lat)},${encodeURIComponent(lng)}&output=embed`;
+    if (iframe.src !== nuevaUrl) iframe.src = nuevaUrl;
+}
+
+// Al escribir latitud o longitud, refresca el mapa (con una pequeña espera)
+let temporizadorMapa = null;
+document.addEventListener('input', (e) => {
+    if (e.target.id !== 'cfg-lat' && e.target.id !== 'cfg-lng') return;
+    clearTimeout(temporizadorMapa);
+    temporizadorMapa = setTimeout(actualizarPreviewMapa, 600);
+});
+
+function mostrarMensajeConfig(texto, tipo) {
+    const caja = document.getElementById('cfg-mensaje');
+    if (!caja) return alert(texto);
+    caja.textContent = texto;
+    caja.className = `cfg-mensaje ${tipo}`;
+    caja.style.display = 'block';
 }
 
 async function guardarConfiguracion(e) {
@@ -434,17 +463,24 @@ async function guardarConfiguracion(e) {
         ])
     );
 
+    const btn = document.getElementById('btn-guardar-config');
+    if (btn) btn.disabled = true;
+
     try {
         const res = await fetchAuth('/api/config', {
             method: 'PUT',
             body: JSON.stringify(payload)
         });
+        const data = await res.json().catch(() => ({}));
 
-        if (!res.ok) throw new Error('Error al guardar');
+        if (!res.ok) throw new Error(data.mensaje || 'Error al guardar la configuración');
 
-        alert('Configuración guardada correctamente');
+        mostrarMensajeConfig('Configuración guardada. Los cambios ya se ven en la página principal.', 'exito');
+        cargarConfiguracion(); // muestra los valores tal como quedaron guardados
     } catch (error) {
         console.error('Error al guardar configuración:', error);
-        alert('Error al guardar la configuración');
+        mostrarMensajeConfig(error.message, 'error');
+    } finally {
+        if (btn) btn.disabled = false;
     }
 }

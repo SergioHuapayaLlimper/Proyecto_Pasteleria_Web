@@ -261,10 +261,10 @@ function construirMensajePedido(codigoPedido, pedido) {
 async function enviarPedidoAWhatsApp(codigoPedido, pedido) {
     try {
         // Obtener el número de WhatsApp del negocio desde la configuración
-        const res = await fetch('/api/config');
-        const config = await res.json();
-        
-        const numeroNegocio = config.whatsapp_numero || '51999999999';
+        // Se consulta de nuevo para usar siempre el número más reciente del admin
+        const config = await obtenerConfigNegocio({ refrescar: true });
+
+        const numeroNegocio = normalizarNumeroWhatsApp(config.whatsapp_numero) || '51922794192';
         
         // Construir el mensaje
         const mensaje = construirMensajePedido(codigoPedido, pedido);

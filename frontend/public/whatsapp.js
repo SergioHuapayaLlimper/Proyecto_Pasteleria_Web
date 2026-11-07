@@ -1,52 +1,48 @@
 // whatsapp.js
 // -----------------------------------------------------
-// Configura el botón flotante de WhatsApp para que abra
-// el chat con el número oficial y un mensaje predeterminado.
+// Configura los enlaces de WhatsApp (botón flotante, hero, CTA, footer)
+// con el número y mensaje definidos por el admin en "Configuración".
 // RF-16, RF-17, RF-18
 // -----------------------------------------------------
 
-document.addEventListener('DOMContentLoaded', () => {
+document.addEventListener('DOMContentLoaded', async () => {
 
-    // ---- CONFIGURACIÓN ----
-    // ⚠️ IMPORTANTE: Reemplaza este número por el real de la pastelería.
-    // Formato: código de país + número, SIN el signo "+", SIN espacios ni guiones.
-    // Ejemplo Perú: 51987654321
-    const NUMERO_WHATSAPP = '51922794192';
+    // Valores de respaldo por si la API no responde
+    const NUMERO_POR_DEFECTO = '51922794192';
+    const MENSAJE_POR_DEFECTO = 'Hola, quisiera información sobre sus productos';
 
-    // Mensaje predeterminado que aparecerá al abrir el chat (RF-18)
-    const MENSAJE_PREDETERMINADO = 'Hola, quisiera información sobre sus productos';
-
-    // ---- REFERENCIA AL BOTÓN ----
     const btnWhatsapp = document.getElementById('btn-whatsapp');
+    const enlaces = [btnWhatsapp, ...document.querySelectorAll('.js-whatsapp')].filter(Boolean);
+    if (!enlaces.length) return;
 
-    if (!btnWhatsapp) return; // Seguridad por si el botón no existe
+    function construirUrl(numero, mensaje) {
+        return `https://wa.me/${numero}?text=${encodeURIComponent(mensaje)}`;
+    }
 
-    // ---- CONSTRUIR LA URL ----
-    // Codificamos el mensaje para que funcione en la URL (reemplaza espacios por %20, etc.)
-    const mensajeCodificado = encodeURIComponent(MENSAJE_PREDETERMINADO);
-    const urlWhatsapp = `https://wa.me/${NUMERO_WHATSAPP}?text=${mensajeCodificado}`;
+    function asignarUrl(url) {
+        enlaces.forEach(enlace => enlace.setAttribute('href', url));
+    }
 
-    // ---- ASIGNAR EL ENLACE ----
-    btnWhatsapp.setAttribute('href', urlWhatsapp);
+    // 1) Enlace de respaldo inmediato (por si el usuario hace clic antes de que cargue la API)
+    asignarUrl(construirUrl(NUMERO_POR_DEFECTO, MENSAJE_POR_DEFECTO));
 
-    // Otros enlaces de WhatsApp de la página (hero, CTA, footer) usan la misma URL
-    document.querySelectorAll('.js-whatsapp').forEach(enlace => {
-        enlace.setAttribute('href', urlWhatsapp);
-    });
+    // 2) Enlace real con los datos de la configuración del negocio
+    try {
+        const config = await obtenerConfigNegocio();
+        const numero = normalizarNumeroWhatsApp(config.whatsapp_numero) || NUMERO_POR_DEFECTO;
+        const mensaje = config.whatsapp_mensaje || MENSAJE_POR_DEFECTO;
+        asignarUrl(construirUrl(numero, mensaje));
+    } catch (error) {
+        console.warn('No se pudo cargar la configuración de WhatsApp, se usa el número por defecto.', error);
+    }
 
-    // ---- TRACKING (opcional para métricas - HU02) ----
-    // Cuando el usuario haga clic, registramos la consulta en el backend.
-    btnWhatsapp.addEventListener('click', () => {
-        // Enviamos un "ping" al backend para registrar la consulta
-        // (esto alimentará las métricas del panel admin - RF-04)
-        fetch('/api/consultas', {
+    // ---- TRACKING para métricas (HU02 / RF-04) ----
+    enlaces.forEach(enlace => enlace.addEventListener('click', () => {
+        fetch('/api/pedidos/consultas', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ tipo: 'whatsapp' })
-        }).catch(() => {
-            // Si falla, no pasa nada. No queremos interrumpir al usuario.
-            console.log('No se pudo registrar la consulta de WhatsApp');
-        });
-    });
+        }).catch(() => console.log('No se pudo registrar la consulta de WhatsApp'));
+    }));
 
 });

@@ -490,6 +490,38 @@ body.dashboard-body {
     grid-column: 1 / -1;
 }
 
+.ayuda-campo {
+    display: block;
+    margin-top: 6px;
+    font-size: 0.8rem;
+    color: #888;
+}
+
+.mapa-preview {
+    width: 100%;
+    height: 280px;
+    border: 1px solid #ddd;
+    border-radius: 10px;
+    background: #f5efea;
+}
+
+.cfg-mensaje {
+    padding: 12px 14px;
+    border-radius: 8px;
+    margin-bottom: 18px;
+    font-size: 0.9rem;
+}
+
+.cfg-mensaje.exito {
+    background: #e8f6ee;
+    color: #1e7a46;
+}
+
+.cfg-mensaje.error {
+    background: #fdecea;
+    color: #b3261e;
+}
+
 /* ============================================
    MODAL
    ============================================ */
