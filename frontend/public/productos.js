@@ -9,6 +9,16 @@ document.addEventListener('DOMContentLoaded', () => {
 
     const API_BASE = '/api';
 
+    // Evita inyectar HTML desde los datos de la BD (protección básica contra XSS)
+    function escaparHTML(valor) {
+        return String(valor ?? '')
+            .replace(/&/g, '&amp;')
+            .replace(/</g, '&lt;')
+            .replace(/>/g, '&gt;')
+            .replace(/"/g, '&quot;')
+            .replace(/'/g, '&#39;');
+    }
+
     // ---- 1. CARGAR PRODUCTOS (RF-10) ----
     async function cargarProductos() {
         const contenedor = document.getElementById('catalogo-productos');
@@ -23,23 +33,35 @@ document.addEventListener('DOMContentLoaded', () => {
                 return;
             }
 
-            contenedor.innerHTML = productos.map(p => `
+            const IMG_DEFECTO = 'https://via.placeholder.com/400x300?text=Sin+imagen';
+
+            contenedor.innerHTML = productos.map(p => {
+                const nombre = escaparHTML(p.nombre);
+                const precio = parseFloat(p.precio).toFixed(2);
+                const imagen = escaparHTML(p.imagen_url || IMG_DEFECTO);
+                return `
                 <div class="card-producto">
-                    <img src="${p.imagen_url || 'https://via.placeholder.com/400x200?text=Sin+imagen'}" alt="${p.nombre}">
+                    <div class="media">
+                        <img src="${imagen}" alt="${nombre}" loading="lazy">
+                    </div>
                     <div class="info">
-                        <h3>${p.nombre}</h3>
-                        <p>${p.descripcion || ''}</p>
-                        <p class="precio">S/ ${parseFloat(p.precio).toFixed(2)}</p>
+                        <h3>${nombre}</h3>
+                        <p class="descripcion">${escaparHTML(p.descripcion || '')}</p>
+                        <p class="precio"><small>S/</small> ${precio}</p>
                         <button class="btn-agregar" 
-                                data-id="${p.id}" 
-                                data-nombre="${p.nombre}" 
-                                data-precio="${p.precio}"
-                                data-imagen="${p.imagen_url || ''}">
+                                data-id="${escaparHTML(p.id)}" 
+                                data-nombre="${nombre}" 
+                                data-precio="${escaparHTML(p.precio)}"
+                                data-imagen="${escaparHTML(p.imagen_url || '')}">
                             <i class="fas fa-cart-plus"></i> Agregar al carrito
                         </button>
                     </div>
-                </div>
-            `).join('');
+                </div>`;
+            }).join('');
+
+            if (typeof window.revelarElementos === 'function') {
+                window.revelarElementos('#catalogo-productos .card-producto');
+            }
 
             contenedor.querySelectorAll('.btn-agregar').forEach(btn => {
                 btn.addEventListener('click', () => {
@@ -53,6 +75,14 @@ document.addEventListener('DOMContentLoaded', () => {
                     if (typeof agregarAlCarrito === 'function') {
                         agregarAlCarrito(producto);
                     }
+                    // Feedback visual breve en el botón
+                    const original = btn.innerHTML;
+                    btn.classList.add('agregado');
+                    btn.innerHTML = '<i class="fas fa-check"></i> Agregado';
+                    setTimeout(() => {
+                        btn.classList.remove('agregado');
+                        btn.innerHTML = original;
+                    }, 1200);
                 });
             });
 
@@ -70,17 +100,20 @@ document.addEventListener('DOMContentLoaded', () => {
 
             const infoUbicacion = document.getElementById('info-ubicacion');
             if (infoUbicacion && config.direccion) {
+                const lat = encodeURIComponent(config.mapa_lat || '');
+                const lng = encodeURIComponent(config.mapa_lng || '');
                 infoUbicacion.innerHTML = `
-                    <p style="text-align:center; font-size:1.1rem; margin-bottom:15px;">
-                        <i class="fas fa-map-marker-alt"></i> ${config.direccion}
-                    </p>
                     <iframe 
-                        src="https://www.google.com/maps?q=${config.mapa_lat},${config.mapa_lng}&output=embed"
+                        src="https://www.google.com/maps?q=${lat},${lng}&output=embed"
+                        title="Mapa de ubicación de la pastelería"
                         loading="lazy">
                     </iframe>
-                    <div style="text-align:center; margin-top:15px;">
-                        <a href="https://www.google.com/maps/dir/?api=1&destination=${config.mapa_lat},${config.mapa_lng}" 
-                           target="_blank" class="btn-primary">
+                    <div class="ubicacion-pie">
+                        <p class="ubicacion-direccion">
+                            <i class="fas fa-map-marker-alt"></i> ${escaparHTML(config.direccion)}
+                        </p>
+                        <a href="https://www.google.com/maps/dir/?api=1&destination=${lat},${lng}" 
+                           target="_blank" rel="noopener" class="btn-mapa">
                             <i class="fas fa-directions"></i> Abrir en Google Maps
                         </a>
                     </div>
@@ -89,19 +122,21 @@ document.addEventListener('DOMContentLoaded', () => {
 
             const infoHorarios = document.getElementById('info-horarios');
             if (infoHorarios && config.horario_atencion) {
-                infoHorarios.innerHTML = `<i class="fas fa-clock"></i> ${config.horario_atencion}`;
+                infoHorarios.textContent = config.horario_atencion;
             }
 
             const infoPagos = document.getElementById('info-pagos');
             if (infoPagos && config.metodos_pago) {
-                infoPagos.innerHTML = `<i class="fas fa-credit-card"></i> ${config.metodos_pago}`;
+                infoPagos.textContent = config.metodos_pago;
             }
 
             const infoContacto = document.getElementById('info-contacto');
             if (infoContacto) {
+                const tel = escaparHTML(config.telefono_contacto || '');
+                const correo = escaparHTML(config.correo_contacto || '');
                 infoContacto.innerHTML = `
-                    <p><i class="fas fa-phone"></i> ${config.telefono_contacto || ''}</p>
-                    <p><i class="fas fa-envelope"></i> ${config.correo_contacto || ''}</p>
+                    <p><i class="fas fa-phone"></i> <a href="tel:${tel.replace(/\s/g, '')}">${tel}</a></p>
+                    <p><i class="fas fa-envelope"></i> <a href="mailto:${correo}">${correo}</a></p>
                 `;
             }
 

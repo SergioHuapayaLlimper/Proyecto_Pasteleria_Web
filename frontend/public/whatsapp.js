@@ -29,6 +29,11 @@ document.addEventListener('DOMContentLoaded', () => {
     // ---- ASIGNAR EL ENLACE ----
     btnWhatsapp.setAttribute('href', urlWhatsapp);
 
+    // Otros enlaces de WhatsApp de la página (hero, CTA, footer) usan la misma URL
+    document.querySelectorAll('.js-whatsapp').forEach(enlace => {
+        enlace.setAttribute('href', urlWhatsapp);
+    });
+
     // ---- TRACKING (opcional para métricas - HU02) ----
     // Cuando el usuario haga clic, registramos la consulta en el backend.
     btnWhatsapp.addEventListener('click', () => {

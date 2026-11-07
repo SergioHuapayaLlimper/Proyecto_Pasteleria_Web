@@ -51,7 +51,15 @@ function agregarAlCarrito(producto) {
 
     guardarCarrito();
     renderizarCarrito();
+    animarBotonCarrito();
     abrirCarrito();
+}
+
+// ---- FEEDBACK VISUAL AL AGREGAR ----
+function animarBotonCarrito() {
+    btnCarrito.classList.remove('rebote');
+    void btnCarrito.offsetWidth; // reinicia la animación
+    btnCarrito.classList.add('rebote');
 }
 
 // ---- GUARDAR EN LOCALSTORAGE ----

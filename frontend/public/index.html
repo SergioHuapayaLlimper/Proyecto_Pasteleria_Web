@@ -4,90 +4,161 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Corporación Jorby - Pastelería</title>
-    <link rel="stylesheet" href="styles.css">
+    <meta name="description" content="Pastelería artesanal Corporación Jorby: tortas, postres y bocaditos hechos a mano. Haz tu pedido en línea y confírmalo por WhatsApp.">
+    <meta name="theme-color" content="#8b5a5a">
+    <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='16' fill='%238b5a5a'/%3E%3Ctext x='32' y='44' font-size='34' text-anchor='middle' fill='%23fff9f5' font-family='Georgia,serif' font-style='italic'%3EJ%3C/text%3E%3C/svg%3E">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Fraunces:ital,opsz,wght@0,9..144,500;0,9..144,600;1,9..144,500&display=swap">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
+    <link rel="stylesheet" href="styles.css">
 </head>
 <body>
 
+    <!-- BARRA DE ANUNCIO -->
+    <div class="topbar">
+        <span><i class="fas fa-truck-fast"></i> Haz tu pedido en línea y confírmalo por WhatsApp</span>
+    </div>
+
     <!-- HEADER -->
-    <header class="header">
-        <div class="logo">
-            <i class="fas fa-birthday-cake"></i>
-            <span>Corporación Jorby</span>
-        </div>
-        <nav class="nav">
+    <header class="header" id="header">
+        <a href="#" class="logo" aria-label="Corporación Jorby - Inicio">
+            <span class="logo-icono"><i class="fas fa-birthday-cake"></i></span>
+            <span class="logo-texto">
+                <span>Corporación Jorby</span>
+                <small>Pastelería artesanal</small>
+            </span>
+        </a>
+        <nav class="nav" id="nav">
             <a href="#productos">Productos</a>
             <a href="#ubicacion">Ubicación</a>
             <a href="#horarios">Horarios</a>
             <a href="#pagos">Métodos de Pago</a>
             <a href="#contacto">Contacto</a>
         </nav>
-        <button id="btn-acceso" class="btn-acceso">
-            <i class="fas fa-user"></i> Acceso
-        </button>
+        <div class="header-acciones">
+            <button id="btn-acceso" class="btn-acceso">
+                <i class="fas fa-user"></i> Acceso
+            </button>
+            <button class="btn-menu" id="btn-menu" aria-label="Abrir menú" aria-expanded="false" aria-controls="nav">
+                <i class="fas fa-bars"></i>
+            </button>
+        </div>
     </header>
 
     <!-- HERO -->
     <section class="hero">
         <div class="hero-content">
-            <h1>Los mejores postres de la ciudad</h1>
+            <span class="eyebrow eyebrow-claro"><i class="fas fa-wheat-awn"></i> Hecho a mano, cada día</span>
+            <h1>Los mejores <em>postres</em> de la ciudad</h1>
             <p>Hechos con amor y los mejores ingredientes</p>
-            <a href="#productos" class="btn-primary">Ver Catálogo</a>
+            <div class="hero-botones">
+                <a href="#productos" class="btn-primary">Ver Catálogo <i class="fas fa-arrow-right"></i></a>
+                <a href="#" class="btn-secundario js-whatsapp" target="_blank" rel="noopener">
+                    <i class="fab fa-whatsapp"></i> Pedir por WhatsApp
+                </a>
+            </div>
         </div>
+        <ul class="hero-beneficios">
+            <li><i class="fas fa-seedling"></i><span><strong>Ingredientes</strong> seleccionados</span></li>
+            <li><i class="fab fa-whatsapp"></i><span><strong>Pedidos</strong> por WhatsApp</span></li>
+            <li><i class="fas fa-wallet"></i><span><strong>Pago</strong> con Yape o efectivo</span></li>
+        </ul>
     </section>
 
     <!-- PRODUCTOS (RF-10) -->
     <section id="productos" class="seccion">
-        <h2>Nuestros Productos</h2>
+        <div class="seccion-cabecera">
+            <span class="eyebrow">Nuestra vitrina</span>
+            <h2>Nuestros Productos</h2>
+            <p>Elige tus favoritos, agrégalos al carrito y te los preparamos al momento.</p>
+        </div>
         <div id="catalogo-productos" class="grid-productos">
-            <!-- Se llena dinámicamente con productos.js -->
+            <!-- Se llena dinámicamente con productos.js (esqueletos mientras carga) -->
+            <div class="card-producto skeleton" aria-hidden="true"><div class="sk-img"></div><div class="info"><div class="sk-linea"></div><div class="sk-linea corta"></div></div></div>
+            <div class="card-producto skeleton" aria-hidden="true"><div class="sk-img"></div><div class="info"><div class="sk-linea"></div><div class="sk-linea corta"></div></div></div>
+            <div class="card-producto skeleton" aria-hidden="true"><div class="sk-img"></div><div class="info"><div class="sk-linea"></div><div class="sk-linea corta"></div></div></div>
+            <div class="card-producto skeleton" aria-hidden="true"><div class="sk-img"></div><div class="info"><div class="sk-linea"></div><div class="sk-linea corta"></div></div></div>
         </div>
     </section>
 
-    <!-- UBICACIÓN (RF-11, RF-12) -->
-    <section id="ubicacion" class="seccion">
-        <h2>¿Dónde encontrarnos?</h2>
-        <div id="info-ubicacion" class="info-ubicacion">
-            <!-- Se llena dinámicamente con productos.js -->
+    <!-- VISÍTANOS: UBICACIÓN + HORARIOS + PAGOS + CONTACTO -->
+    <div class="bloque-visita">
+        <!-- UBICACIÓN (RF-11, RF-12) -->
+        <section id="ubicacion" class="seccion">
+            <div class="seccion-cabecera">
+                <span class="eyebrow">Visítanos</span>
+                <h2>¿Dónde encontrarnos?</h2>
+            </div>
+            <div class="visita-grid">
+                <div id="info-ubicacion" class="info-ubicacion">
+                    <!-- Se llena dinámicamente con productos.js -->
+                    <div class="mapa-placeholder"><i class="fas fa-map-location-dot"></i></div>
+                </div>
+
+                <div class="info-cards">
+                    <!-- HORARIOS (RF-13) -->
+                    <section id="horarios" class="info-card">
+                        <span class="info-icono"><i class="fas fa-clock"></i></span>
+                        <div>
+                            <h2>Horarios de Atención</h2>
+                            <p id="info-horarios">Cargando...</p>
+                        </div>
+                    </section>
+
+                    <!-- MÉTODOS DE PAGO (RF-14) -->
+                    <section id="pagos" class="info-card">
+                        <span class="info-icono"><i class="fas fa-credit-card"></i></span>
+                        <div>
+                            <h2>Métodos de Pago</h2>
+                            <p id="info-pagos">Cargando...</p>
+                        </div>
+                    </section>
+
+                    <!-- CONTACTO (RF-15) -->
+                    <section id="contacto" class="info-card">
+                        <span class="info-icono"><i class="fas fa-headset"></i></span>
+                        <div>
+                            <h2>Contacto</h2>
+                            <div id="info-contacto">
+                                <!-- Se llena dinámicamente -->
+                            </div>
+                        </div>
+                    </section>
+                </div>
+            </div>
+        </section>
+    </div>
+
+    <!-- LLAMADO A LA ACCIÓN -->
+    <section class="cta">
+        <div class="cta-contenido">
+            <h2>¿Tienes una celebración en mente?</h2>
+            <p>Cuéntanos qué necesitas y te ayudamos a armar el pedido ideal.</p>
         </div>
-    </section>
-
-    <!-- HORARIOS (RF-13) -->
-    <section id="horarios" class="seccion">
-        <h2>Horarios de Atención</h2>
-        <p id="info-horarios">Cargando...</p>
-    </section>
-
-    <!-- MÉTODOS DE PAGO (RF-14) -->
-    <section id="pagos" class="seccion">
-        <h2>Métodos de Pago</h2>
-        <p id="info-pagos">Cargando...</p>
-    </section>
-
-    <!-- CONTACTO (RF-15) -->
-    <section id="contacto" class="seccion">
-        <h2>Contacto</h2>
-        <div id="info-contacto">
-            <!-- Se llena dinámicamente -->
-        </div>
+        <a href="#" class="btn-whatsapp-cta js-whatsapp" target="_blank" rel="noopener">
+            <i class="fab fa-whatsapp"></i> Escríbenos
+        </a>
     </section>
 
     <!-- BOTÓN FLOTANTE WHATSAPP (RF-16, 17, 18) -->
-    <a href="#" id="btn-whatsapp" class="btn-whatsapp" target="_blank" title="Contáctanos por WhatsApp">
+    <a href="#" id="btn-whatsapp" class="btn-whatsapp" target="_blank" rel="noopener" title="Contáctanos por WhatsApp" aria-label="Contáctanos por WhatsApp">
         <i class="fab fa-whatsapp"></i>
     </a>
 
     <!-- CARRITO FLOTANTE (HU08) -->
-    <button id="btn-carrito" class="btn-carrito">
+    <button id="btn-carrito" class="btn-carrito" aria-label="Abrir carrito">
         <i class="fas fa-shopping-cart"></i>
         <span id="contador-carrito">0</span>
     </button>
 
     <!-- MODAL DE ACCESO -->
     <div id="modal-acceso" class="modal">
-        <div class="modal-content">
-            <span class="close">&times;</span>
-            <h2>Selecciona tu tipo de acceso</h2>
+        <div class="modal-content" role="dialog" aria-modal="true" aria-labelledby="titulo-acceso">
+            <span class="close" aria-label="Cerrar">&times;</span>
+            <span class="modal-icono"><i class="fas fa-birthday-cake"></i></span>
+            <h2 id="titulo-acceso">Selecciona tu tipo de acceso</h2>
+            <p class="modal-sub">¿Cómo deseas ingresar?</p>
             <div class="modal-botones">
                 <button id="btn-cliente" class="btn-modal btn-cliente">
                     <i class="fas fa-user"></i> Cliente
@@ -98,12 +169,12 @@
             </div>
         </div>
     </div>
-    
-        <!-- MODAL DEL CARRITO -->
+
+    <!-- MODAL DEL CARRITO -->
     <div id="modal-carrito" class="modal-carrito">
-        <div class="carrito-contenido">
-            <button class="carrito-cerrar" id="carrito-cerrar">&times;</button>
-            <h2><i class="fas fa-shopping-cart"></i> Tu Carrito</h2>
+        <div class="carrito-contenido" role="dialog" aria-modal="true" aria-labelledby="titulo-carrito">
+            <button class="carrito-cerrar" id="carrito-cerrar" aria-label="Cerrar carrito">&times;</button>
+            <h2 id="titulo-carrito"><i class="fas fa-shopping-cart"></i> Tu Carrito</h2>
 
             <div id="lista-carrito" class="lista-carrito">
                 <!-- Se llena dinámicamente con cart.js -->
@@ -118,10 +189,10 @@
                 <h3>Datos para tu pedido</h3>
 
                 <label for="cliente-nombre">Nombre completo *</label>
-                <input type="text" id="cliente-nombre" required placeholder="Ej: Juan Pérez">
+                <input type="text" id="cliente-nombre" required placeholder="Ej: Juan Pérez" autocomplete="name">
 
                 <label for="cliente-telefono">Teléfono (WhatsApp) *</label>
-                <input type="tel" id="cliente-telefono" required placeholder="Ej: 987654321">
+                <input type="tel" id="cliente-telefono" required placeholder="Ej: 987654321" autocomplete="tel" inputmode="numeric">
 
                 <label for="metodo-pago">Método de pago *</label>
                 <select id="metodo-pago" required>
@@ -141,7 +212,32 @@
 
     <!-- FOOTER -->
     <footer class="footer">
-        <p>&copy; 2024 Corporación Jorby - Todos los derechos reservados</p>
+        <div class="footer-grid">
+            <div class="footer-marca">
+                <a href="#" class="logo logo-footer">
+                    <span class="logo-icono"><i class="fas fa-birthday-cake"></i></span>
+                    <span class="logo-texto"><span>Corporación Jorby</span><small>Pastelería artesanal</small></span>
+                </a>
+                <p>Postres, tortas y bocaditos preparados con dedicación para tus mejores momentos.</p>
+            </div>
+            <div>
+                <h4>Explora</h4>
+                <ul>
+                    <li><a href="#productos">Productos</a></li>
+                    <li><a href="#ubicacion">Ubicación</a></li>
+                    <li><a href="#horarios">Horarios</a></li>
+                    <li><a href="#pagos">Métodos de Pago</a></li>
+                </ul>
+            </div>
+            <div>
+                <h4>Pedidos</h4>
+                <ul>
+                    <li><a href="#" class="js-whatsapp" target="_blank" rel="noopener"><i class="fab fa-whatsapp"></i> WhatsApp</a></li>
+                    <li><a href="#contacto"><i class="fas fa-envelope"></i> Contacto</a></li>
+                </ul>
+            </div>
+        </div>
+        <p class="footer-legal">&copy; <span id="anio-actual">2026</span> Corporación Jorby - Todos los derechos reservados</p>
     </footer>
 
     <script src="whatsapp.js"></script>
