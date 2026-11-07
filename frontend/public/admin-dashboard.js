@@ -102,12 +102,7 @@ function cambiarSeccion(seccion) {
 }
 
 // Genera y descarga un Excel (hoja "Pedidos") con los datos recibidos.
-function descargarExcel(datos, prefijoArchivo) {
-    const ws = XLSX.utils.json_to_sheet(datos);
-    const wb = XLSX.utils.book_new();
-    XLSX.utils.book_append_sheet(wb, ws, 'Pedidos');
-    XLSX.writeFile(wb, `${prefijoArchivo}_${new Date().toISOString().split('T')[0]}.xlsx`);
-}
+// descargarExcel(datos, prefijo, opciones) está definida en exportarExcel.js
 
 // =====================================================
 // SECCIÓN: DASHBOARD (HU02 / RF-04, RF-05, RF-06)
@@ -195,7 +190,11 @@ async function exportarMetricas() {
             return;
         }
 
-        descargarExcel(datos, 'Reporte_Jorby');
+        await descargarExcel(datos, 'Reporte_Jorby', {
+            titulo: 'Reporte de Ventas',
+            nombreHoja: 'Detalle',
+            filtros: { desde, hasta }
+        });
         Dialogo.toast('Reporte exportado correctamente.', 'exito');
     } catch (error) {
         console.error('Error al exportar:', error);
@@ -417,7 +416,11 @@ async function exportarPedidos() {
             return;
         }
 
-        descargarExcel(pedidos, 'Pedidos_Jorby');
+        await descargarExcel(pedidos, 'Pedidos_Jorby', {
+            titulo: 'Reporte de Pedidos',
+            nombreHoja: 'Pedidos',
+            filtros: Object.fromEntries(params)
+        });
         Dialogo.toast('Pedidos exportados correctamente.', 'exito');
     } catch (error) {
         console.error('Error al exportar:', error);
