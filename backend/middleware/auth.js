@@ -37,4 +37,8 @@ function soloRoles(...rolesPermitidos) {
   };
 }
 
-module.exports = { verificarToken, soloRoles };
+// Combinaciones de uso frecuente en las rutas protegidas.
+const requiereAdmin = [verificarToken, soloRoles('Administrador')];
+const requiereAdminOContador = [verificarToken, soloRoles('Administrador', 'Contador')];
+
+module.exports = { verificarToken, soloRoles, requiereAdmin, requiereAdminOContador };

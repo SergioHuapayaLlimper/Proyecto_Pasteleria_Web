@@ -76,6 +76,14 @@ document.addEventListener('DOMContentLoaded', () => {
 });
 
 // ---- CAMBIAR SECCIÓN ----
+// Qué función carga los datos de cada sección al entrar en ella.
+const CARGADORES_SECCION = {
+    dashboard: cargarDashboard,
+    productos: cargarProductos,
+    pedidos: cargarPedidos,
+    configuracion: cargarConfiguracion
+};
+
 function cambiarSeccion(seccion) {
     document.querySelectorAll('.nav-item').forEach(b => b.classList.remove('activo'));
     document.querySelectorAll('.seccion').forEach(s => s.classList.remove('activa'));
@@ -83,10 +91,16 @@ function cambiarSeccion(seccion) {
     document.querySelector(`.nav-item[data-seccion="${seccion}"]`).classList.add('activo');
     document.getElementById(`seccion-${seccion}`).classList.add('activa');
 
-    if (seccion === 'dashboard') cargarDashboard();
-    if (seccion === 'productos') cargarProductos();
-    if (seccion === 'pedidos') cargarPedidos();
-    if (seccion === 'configuracion') cargarConfiguracion();
+    const cargarSeccion = CARGADORES_SECCION[seccion];
+    if (cargarSeccion) cargarSeccion();
+}
+
+// Genera y descarga un Excel (hoja "Pedidos") con los datos recibidos.
+function descargarExcel(datos, prefijoArchivo) {
+    const ws = XLSX.utils.json_to_sheet(datos);
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, 'Pedidos');
+    XLSX.writeFile(wb, `${prefijoArchivo}_${new Date().toISOString().split('T')[0]}.xlsx`);
 }
 
 // =====================================================
@@ -175,10 +189,7 @@ async function exportarMetricas() {
             return;
         }
 
-        const ws = XLSX.utils.json_to_sheet(datos);
-        const wb = XLSX.utils.book_new();
-        XLSX.utils.book_append_sheet(wb, ws, 'Pedidos');
-        XLSX.writeFile(wb, `Reporte_Jorby_${new Date().toISOString().split('T')[0]}.xlsx`);
+        descargarExcel(datos, 'Reporte_Jorby');
     } catch (error) {
         console.error('Error al exportar:', error);
         alert('Error al exportar');
@@ -297,7 +308,8 @@ async function desactivarProducto(id) {
 // =====================================================
 // SECCIÓN: PEDIDOS (HU07 / RF-19, RF-20, RF-21)
 // =====================================================
-async function cargarPedidos() {
+// Lee los filtros de la sección Pedidos y los devuelve como parámetros de URL.
+function obtenerFiltrosPedidos() {
     const desde = document.getElementById('pedido-desde').value;
     const hasta = document.getElementById('pedido-hasta').value;
     const estado = document.getElementById('pedido-estado').value;
@@ -306,6 +318,11 @@ async function cargarPedidos() {
     if (desde) params.append('desde', desde);
     if (hasta) params.append('hasta', hasta);
     if (estado) params.append('estado', estado);
+    return params;
+}
+
+async function cargarPedidos() {
+    const params = obtenerFiltrosPedidos();
 
     try {
         const res = await fetchAuth(`/api/pedidos?${params.toString()}`);
@@ -360,14 +377,7 @@ async function cambiarEstadoPedido(id, nuevoEstado) {
 }
 
 async function exportarPedidos() {
-    const desde = document.getElementById('pedido-desde').value;
-    const hasta = document.getElementById('pedido-hasta').value;
-    const estado = document.getElementById('pedido-estado').value;
-
-    const params = new URLSearchParams();
-    if (desde) params.append('desde', desde);
-    if (hasta) params.append('hasta', hasta);
-    if (estado) params.append('estado', estado);
+    const params = obtenerFiltrosPedidos();
 
     try {
         const res = await fetchAuth(`/api/pedidos?${params.toString()}`);
@@ -378,10 +388,7 @@ async function exportarPedidos() {
             return;
         }
 
-        const ws = XLSX.utils.json_to_sheet(pedidos);
-        const wb = XLSX.utils.book_new();
-        XLSX.utils.book_append_sheet(wb, ws, 'Pedidos');
-        XLSX.writeFile(wb, `Pedidos_Jorby_${new Date().toISOString().split('T')[0]}.xlsx`);
+        descargarExcel(pedidos, 'Pedidos_Jorby');
     } catch (error) {
         console.error('Error al exportar:', error);
         alert('Error al exportar');
@@ -391,20 +398,27 @@ async function exportarPedidos() {
 // =====================================================
 // SECCIÓN: CONFIGURACIÓN
 // =====================================================
+// Relación entre cada clave de configuración (API) y el id de su campo en el formulario.
+const CAMPOS_CONFIG = {
+    direccion: 'cfg-direccion',
+    mapa_lat: 'cfg-lat',
+    mapa_lng: 'cfg-lng',
+    horario_atencion: 'cfg-horario',
+    metodos_pago: 'cfg-pagos',
+    telefono_contacto: 'cfg-telefono',
+    correo_contacto: 'cfg-correo',
+    whatsapp_numero: 'cfg-whatsapp',
+    whatsapp_mensaje: 'cfg-whatsapp-msg'
+};
+
 async function cargarConfiguracion() {
     try {
         const res = await fetch('/api/config');
         const config = await res.json();
 
-        document.getElementById('cfg-direccion').value = config.direccion || '';
-        document.getElementById('cfg-lat').value = config.mapa_lat || '';
-        document.getElementById('cfg-lng').value = config.mapa_lng || '';
-        document.getElementById('cfg-horario').value = config.horario_atencion || '';
-        document.getElementById('cfg-pagos').value = config.metodos_pago || '';
-        document.getElementById('cfg-telefono').value = config.telefono_contacto || '';
-        document.getElementById('cfg-correo').value = config.correo_contacto || '';
-        document.getElementById('cfg-whatsapp').value = config.whatsapp_numero || '';
-        document.getElementById('cfg-whatsapp-msg').value = config.whatsapp_mensaje || '';
+        Object.entries(CAMPOS_CONFIG).forEach(([clave, idCampo]) => {
+            document.getElementById(idCampo).value = config[clave] || '';
+        });
     } catch (error) {
         console.error('Error al cargar configuración:', error);
     }
@@ -413,17 +427,12 @@ async function cargarConfiguracion() {
 async function guardarConfiguracion(e) {
     e.preventDefault();
 
-    const payload = {
-        direccion: document.getElementById('cfg-direccion').value,
-        mapa_lat: document.getElementById('cfg-lat').value,
-        mapa_lng: document.getElementById('cfg-lng').value,
-        horario_atencion: document.getElementById('cfg-horario').value,
-        metodos_pago: document.getElementById('cfg-pagos').value,
-        telefono_contacto: document.getElementById('cfg-telefono').value,
-        correo_contacto: document.getElementById('cfg-correo').value,
-        whatsapp_numero: document.getElementById('cfg-whatsapp').value,
-        whatsapp_mensaje: document.getElementById('cfg-whatsapp-msg').value
-    };
+    const payload = Object.fromEntries(
+        Object.entries(CAMPOS_CONFIG).map(([clave, idCampo]) => [
+            clave,
+            document.getElementById(idCampo).value
+        ])
+    );
 
     try {
         const res = await fetchAuth('/api/config', {

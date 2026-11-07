@@ -6,6 +6,12 @@
 // -----------------------------------------------------
 
 const { pool } = require('../config/db');
+const { filtroRangoFechas } = require('../utils/filtros');
+
+// Valores permitidos (un solo lugar para validarlos)
+const METODOS_PAGO = ['Efectivo', 'Yape'];
+const ESTADOS_PEDIDO = ['Pendiente', 'Completado', 'Cancelado'];
+const TIPOS_CONSULTA = ['whatsapp', 'contacto', 'pedido'];
 
 // Genera un código único para el pedido tipo "PED-20241215-1234"
 function generarCodigoPedido() {
@@ -17,6 +23,51 @@ function generarCodigoPedido() {
     return `PED-${y}${m}${d}-${random}`;
 }
 
+// Subtotal de una línea del pedido: { precio, cantidad }
+function calcularSubtotal(p) {
+    return parseFloat(p.precio) * parseInt(p.cantidad);
+}
+
+// Valida los datos del pedido (RF-24, RF-25).
+// Devuelve el mensaje de error o null si todo es correcto.
+function validarPedido({ cliente_nombre, cliente_telefono, metodo_pago, productos }) {
+    if (!cliente_nombre || !cliente_telefono || !metodo_pago || !productos || !productos.length) {
+        return 'Todos los campos son obligatorios';
+    }
+
+    // Validar formato de teléfono
+    const telefonoLimpio = cliente_telefono.replace(/\D/g, '');
+    if (telefonoLimpio.length < 9) {
+        return 'El teléfono debe tener al menos 9 dígitos';
+    }
+
+    // Validar método de pago (RF-24)
+    if (!METODOS_PAGO.includes(metodo_pago)) {
+        return 'Método de pago no válido';
+    }
+
+    return null;
+}
+
+// Busca el cliente por teléfono; si no existe, lo crea. Devuelve su id.
+// Recibe la conexión para participar en la misma transacción.
+async function obtenerOCrearCliente(conexion, nombre, telefono) {
+    const [clienteExistente] = await conexion.query(
+        'SELECT id_cliente FROM cliente WHERE telefono = ?',
+        [telefono]
+    );
+
+    if (clienteExistente.length > 0) {
+        return clienteExistente[0].id_cliente;
+    }
+
+    const [nuevoCliente] = await conexion.query(
+        'INSERT INTO cliente (nombre, telefono, direccion, referencia) VALUES (?, ?, ?, ?)',
+        [nombre, telefono, 'Por definir', 'Por definir']
+    );
+    return nuevoCliente.insertId;
+}
+
 // POST /api/pedidos -> Crear un pedido desde la landing (público) - HU08
 exports.crearPedido = async (req, res) => {
     const {
@@ -26,27 +77,14 @@ exports.crearPedido = async (req, res) => {
         productos // Array de { id, nombre, precio, cantidad }
     } = req.body;
 
-    // ---- VALIDACIONES (RF-25) ----
-    if (!cliente_nombre || !cliente_telefono || !metodo_pago || !productos || !productos.length) {
-        return res.status(400).json({ mensaje: 'Todos los campos son obligatorios' });
-    }
-
-    // Validar formato de teléfono
-    const telefonoLimpio = cliente_telefono.replace(/\D/g, '');
-    if (telefonoLimpio.length < 9) {
-        return res.status(400).json({ mensaje: 'El teléfono debe tener al menos 9 dígitos' });
-    }
-
-    // Validar método de pago (RF-24)
-    if (!['Efectivo', 'Yape'].includes(metodo_pago)) {
-        return res.status(400).json({ mensaje: 'Método de pago no válido' });
+    // ---- VALIDACIONES (RF-24, RF-25) ----
+    const errorValidacion = validarPedido({ cliente_nombre, cliente_telefono, metodo_pago, productos });
+    if (errorValidacion) {
+        return res.status(400).json({ mensaje: errorValidacion });
     }
 
     // Calcular monto total
-    const total = productos.reduce(
-        (suma, p) => suma + (parseFloat(p.precio) * parseInt(p.cantidad)),
-        0
-    );
+    const total = productos.reduce((suma, p) => suma + calcularSubtotal(p), 0);
 
     const codigo_pedido = generarCodigoPedido();
     const conexion = await pool.getConnection();
@@ -55,21 +93,7 @@ exports.crearPedido = async (req, res) => {
         await conexion.beginTransaction();
 
         // 1. Buscar o crear el cliente (por teléfono)
-        let id_cliente;
-        const [clienteExistente] = await conexion.query(
-            'SELECT id_cliente FROM cliente WHERE telefono = ?',
-            [cliente_telefono]
-        );
-
-        if (clienteExistente.length > 0) {
-            id_cliente = clienteExistente[0].id_cliente;
-        } else {
-            const [nuevoCliente] = await conexion.query(
-                'INSERT INTO cliente (nombre, telefono, direccion, referencia) VALUES (?, ?, ?, ?)',
-                [cliente_nombre, cliente_telefono, 'Por definir', 'Por definir']
-            );
-            id_cliente = nuevoCliente.insertId;
-        }
+        const id_cliente = await obtenerOCrearCliente(conexion, cliente_nombre, cliente_telefono);
 
         // 2. Insertar el pedido
         const [resultPedido] = await conexion.query(
@@ -83,7 +107,7 @@ exports.crearPedido = async (req, res) => {
 
         // 3. Insertar cada detalle del pedido
         for (const p of productos) {
-            const subtotal = parseFloat(p.precio) * parseInt(p.cantidad);
+            const subtotal = calcularSubtotal(p);
             await conexion.query(
                 `INSERT INTO detalle_pedidos 
                  (id_pedido, id_producto, cantidad, precio_unitario, subtotal)
@@ -124,10 +148,10 @@ exports.listarPedidos = async (req, res) => {
         FROM pedidos
         WHERE 1=1
     `;
-    const params = [];
+    const filtroFechas = filtroRangoFechas(desde, hasta);
+    sql += filtroFechas.sql;
+    const params = [...filtroFechas.params];
 
-    if (desde) { sql += ' AND DATE(creado_en) >= ?'; params.push(desde); }
-    if (hasta) { sql += ' AND DATE(creado_en) <= ?'; params.push(hasta); }
     if (estado) { sql += ' AND estado = ?'; params.push(estado); }
 
     sql += ' ORDER BY creado_en DESC';
@@ -175,7 +199,7 @@ exports.obtenerPedido = async (req, res) => {
 exports.cambiarEstado = async (req, res) => {
     const { estado } = req.body;
 
-    if (!['Pendiente', 'Completado', 'Cancelado'].includes(estado)) {
+    if (!ESTADOS_PEDIDO.includes(estado)) {
         return res.status(400).json({ mensaje: 'Estado no válido' });
     }
 
@@ -200,7 +224,7 @@ exports.cambiarEstado = async (req, res) => {
 exports.registrarConsulta = async (req, res) => {
     const { tipo } = req.body;
 
-    if (!['whatsapp', 'contacto', 'pedido'].includes(tipo)) {
+    if (!TIPOS_CONSULTA.includes(tipo)) {
         return res.status(400).json({ mensaje: 'Tipo de consulta no válido' });
     }
 

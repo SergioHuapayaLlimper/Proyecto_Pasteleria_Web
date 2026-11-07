@@ -16,6 +16,28 @@ const totalCarrito = document.getElementById('total-carrito');
 const contadorCarrito = document.getElementById('contador-carrito');
 const formCheckout = document.getElementById('form-checkout');
 const errorCheckout = document.getElementById('error-checkout');
+const btnConfirmar = document.getElementById('btn-confirmar');
+
+// ---- UTILIDADES ----
+function mostrarErrorCheckout(mensaje) {
+    errorCheckout.textContent = mensaje;
+    errorCheckout.style.display = 'block';
+}
+
+function ocultarErrorCheckout() {
+    errorCheckout.style.display = 'none';
+}
+
+// Bloquea/habilita el botón de confirmar mientras se envía el pedido.
+function marcarEnvioEnCurso(enviando) {
+    btnConfirmar.disabled = enviando;
+    btnConfirmar.textContent = enviando ? 'Enviando...' : 'Confirmar Pedido';
+}
+
+// Subtotal de una línea del carrito (precio x cantidad).
+function subtotalDe(item) {
+    return parseFloat(item.precio) * item.cantidad;
+}
 
 // ---- AGREGAR PRODUCTO AL CARRITO ----
 function agregarAlCarrito(producto) {
@@ -86,7 +108,7 @@ function renderizarCarrito() {
     `).join('');
 
     // Calcular total (RF-23)
-    const total = carrito.reduce((sum, p) => sum + (parseFloat(p.precio) * p.cantidad), 0);
+    const total = carrito.reduce((sum, p) => sum + subtotalDe(p), 0);
     totalCarrito.textContent = `Total: S/ ${total.toFixed(2)}`;
 
     formCheckout.style.display = 'block';
@@ -129,18 +151,16 @@ async function enviarPedido(e) {
     const telefono = document.getElementById('cliente-telefono').value.trim();
     const metodoPago = document.getElementById('metodo-pago').value;
 
-    errorCheckout.style.display = 'none';
+    ocultarErrorCheckout();
 
     // Validaciones (RF-25)
     if (!nombre || !telefono || !metodoPago) {
-        errorCheckout.textContent = 'Todos los campos son obligatorios.';
-        errorCheckout.style.display = 'block';
+        mostrarErrorCheckout('Todos los campos son obligatorios.');
         return;
     }
 
     if (!validarTelefono(telefono)) {
-        errorCheckout.textContent = 'El teléfono debe tener al menos 9 dígitos.';
-        errorCheckout.style.display = 'block';
+        mostrarErrorCheckout('El teléfono debe tener al menos 9 dígitos.');
         return;
     }
 
@@ -158,8 +178,7 @@ async function enviarPedido(e) {
     };
 
     try {
-        document.getElementById('btn-confirmar').disabled = true;
-        document.getElementById('btn-confirmar').textContent = 'Enviando...';
+        marcarEnvioEnCurso(true);
 
         const res = await fetch('/api/pedidos', {
             method: 'POST',
@@ -205,12 +224,30 @@ async function enviarPedido(e) {
 
     } catch (error) {
         console.error('Error al enviar pedido:', error);
-        errorCheckout.textContent = error.message || 'Error al enviar el pedido. Intenta de nuevo.';
-        errorCheckout.style.display = 'block';
-        document.getElementById('btn-confirmar').disabled = false;
-        document.getElementById('btn-confirmar').textContent = 'Confirmar Pedido';
+        mostrarErrorCheckout(error.message || 'Error al enviar el pedido. Intenta de nuevo.');
+        marcarEnvioEnCurso(false);
     }
 }
+
+// Arma el texto del pedido que se envía por WhatsApp.
+function construirMensajePedido(codigoPedido, pedido) {
+    let mensaje = `🍰 *NUEVO PEDIDO - Corporación Jorby*\n\n`;
+    mensaje += `📋 *Código:* ${codigoPedido}\n`;
+    mensaje += `👤 *Cliente:* ${pedido.nombre}\n`;
+    mensaje += `📞 *Teléfono:* ${pedido.telefono}\n`;
+    mensaje += `💳 *Método de pago:* ${pedido.metodoPago}\n\n`;
+    mensaje += `🛒 *Productos:*\n`;
+
+    pedido.productos.forEach(p => {
+        const subtotal = subtotalDe(p).toFixed(2);
+        mensaje += `• ${p.cantidad}x ${p.nombre} — S/ ${subtotal}\n`;
+    });
+
+    mensaje += `\n💰 *TOTAL:* S/ ${parseFloat(pedido.total).toFixed(2)}\n\n`;
+    mensaje += `_Pedido realizado desde la página web._`;
+    return mensaje;
+}
+
 // ---- ENVIAR PEDIDO A WHATSAPP (HU08) ----
 // Abre WhatsApp Web con el detalle del pedido pre-escrito
 async function enviarPedidoAWhatsApp(codigoPedido, pedido) {
@@ -222,20 +259,7 @@ async function enviarPedidoAWhatsApp(codigoPedido, pedido) {
         const numeroNegocio = config.whatsapp_numero || '51999999999';
         
         // Construir el mensaje
-        let mensaje = `🍰 *NUEVO PEDIDO - Corporación Jorby*\n\n`;
-        mensaje += `📋 *Código:* ${codigoPedido}\n`;
-        mensaje += `👤 *Cliente:* ${pedido.nombre}\n`;
-        mensaje += `📞 *Teléfono:* ${pedido.telefono}\n`;
-        mensaje += `💳 *Método de pago:* ${pedido.metodoPago}\n\n`;
-        mensaje += `🛒 *Productos:*\n`;
-        
-        pedido.productos.forEach(p => {
-            const subtotal = (parseFloat(p.precio) * p.cantidad).toFixed(2);
-            mensaje += `• ${p.cantidad}x ${p.nombre} — S/ ${subtotal}\n`;
-        });
-        
-        mensaje += `\n💰 *TOTAL:* S/ ${parseFloat(pedido.total).toFixed(2)}\n\n`;
-        mensaje += `_Pedido realizado desde la página web._`;
+        const mensaje = construirMensajePedido(codigoPedido, pedido);
         
         // Codificar el mensaje para la URL
         const mensajeCodificado = encodeURIComponent(mensaje);

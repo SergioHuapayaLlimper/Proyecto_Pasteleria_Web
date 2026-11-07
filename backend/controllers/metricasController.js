@@ -6,6 +6,7 @@
 // -----------------------------------------------------
 
 const { pool } = require('../config/db');
+const { filtroRangoFechas } = require('../utils/filtros');
 
 // GET /api/metricas/resumen -> Totales generales del dashboard
 exports.resumenGeneral = async (req, res) => {
@@ -63,12 +64,9 @@ exports.metricasPorFecha = async (req, res) => {
         FROM pedidos
         WHERE 1=1
     `;
-    const params = [];
-
-    if (desde) { sql += ' AND DATE(creado_en) >= ?'; params.push(desde); }
-    if (hasta) { sql += ' AND DATE(creado_en) <= ?'; params.push(hasta); }
-
-    sql += ' GROUP BY DATE(creado_en) ORDER BY fecha DESC';
+    const filtro = filtroRangoFechas(desde, hasta);
+    sql += filtro.sql + ' GROUP BY DATE(creado_en) ORDER BY fecha DESC';
+    const params = filtro.params;
 
     try {
         const [rows] = await pool.query(sql, params);
@@ -89,12 +87,9 @@ exports.exportarMetricas = async (req, res) => {
         FROM pedidos 
         WHERE 1=1
     `;
-    const params = [];
-
-    if (desde) { sql += ' AND DATE(creado_en) >= ?'; params.push(desde); }
-    if (hasta) { sql += ' AND DATE(creado_en) <= ?'; params.push(hasta); }
-
-    sql += ' ORDER BY creado_en DESC';
+    const filtro = filtroRangoFechas(desde, hasta);
+    sql += filtro.sql + ' ORDER BY creado_en DESC';
+    const params = filtro.params;
 
     try {
         const [rows] = await pool.query(sql, params);

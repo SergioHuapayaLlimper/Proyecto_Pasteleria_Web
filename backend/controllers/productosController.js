@@ -7,6 +7,24 @@
 
 const { pool } = require('../config/db');
 
+// Busca una categoría por nombre y, si no existe, la crea. Devuelve su id.
+async function obtenerOCrearCategoria(nombre) {
+    const [cat] = await pool.query(
+        'SELECT id_categoria FROM categorias WHERE nombre = ?',
+        [nombre]
+    );
+
+    if (cat.length > 0) {
+        return cat[0].id_categoria;
+    }
+
+    const [nuevaCat] = await pool.query(
+        'INSERT INTO categorias (nombre) VALUES (?)',
+        [nombre]
+    );
+    return nuevaCat.insertId;
+}
+
 // GET /api/productos -> Lista todos los productos activos (público)
 exports.listarProductos = async (req, res) => {
     try {
@@ -74,21 +92,7 @@ exports.crearProducto = async (req, res) => {
 
     try {
         // Buscar o crear la categoría
-        let id_categoria;
-        const [cat] = await pool.query(
-            'SELECT id_categoria FROM categorias WHERE nombre = ?',
-            [categoria]
-        );
-
-        if (cat.length > 0) {
-            id_categoria = cat[0].id_categoria;
-        } else {
-            const [nuevaCat] = await pool.query(
-                'INSERT INTO categorias (nombre) VALUES (?)',
-                [categoria]
-            );
-            id_categoria = nuevaCat.insertId;
-        }
+        const id_categoria = await obtenerOCrearCategoria(categoria);
 
         // Insertar el producto
         const [result] = await pool.query(
@@ -114,21 +118,7 @@ exports.editarProducto = async (req, res) => {
 
     try {
         // Buscar o crear la categoría
-        let id_categoria;
-        const [cat] = await pool.query(
-            'SELECT id_categoria FROM categorias WHERE nombre = ?',
-            [categoria]
-        );
-
-        if (cat.length > 0) {
-            id_categoria = cat[0].id_categoria;
-        } else {
-            const [nuevaCat] = await pool.query(
-                'INSERT INTO categorias (nombre) VALUES (?)',
-                [categoria]
-            );
-            id_categoria = nuevaCat.insertId;
-        }
+        const id_categoria = await obtenerOCrearCategoria(categoria);
 
         // Actualizar el producto
         const [result] = await pool.query(

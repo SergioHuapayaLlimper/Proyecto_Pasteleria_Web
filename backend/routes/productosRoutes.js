@@ -7,16 +7,16 @@
 const express = require('express');
 const router = express.Router();
 const productosController = require('../controllers/productosController');
-const { verificarToken, soloRoles } = require('../middleware/auth');
+const { requiereAdmin } = require('../middleware/auth');
 
 // ---- RUTAS PÚBLICAS ----
 router.get('/', productosController.listarProductos);
 
 // ---- RUTAS PRIVADAS (solo admin) ----
-router.get('/todos', verificarToken, soloRoles('Administrador'), productosController.listarTodos);
+router.get('/todos', requiereAdmin, productosController.listarTodos);
 router.get('/:id', productosController.obtenerProducto);
-router.post('/', verificarToken, soloRoles('Administrador'), productosController.crearProducto);
-router.put('/:id', verificarToken, soloRoles('Administrador'), productosController.editarProducto);
-router.delete('/:id', verificarToken, soloRoles('Administrador'), productosController.desactivarProducto);
+router.post('/', requiereAdmin, productosController.crearProducto);
+router.put('/:id', requiereAdmin, productosController.editarProducto);
+router.delete('/:id', requiereAdmin, productosController.desactivarProducto);
 
 module.exports = router;

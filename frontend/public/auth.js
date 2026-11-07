@@ -29,6 +29,12 @@ document.addEventListener('DOMContentLoaded', () => {
         loginError.style.display = 'none';
     }
 
+    // Deja el botón de login en su estado original
+    function restaurarBotonLogin() {
+        btnLogin.disabled = false;
+        btnLogin.innerHTML = '<i class="fas fa-sign-in-alt"></i> Ingresar';
+    }
+
     // Manejar envío del formulario
     formLogin.addEventListener('submit', async (e) => {
         e.preventDefault();
@@ -64,16 +70,14 @@ document.addEventListener('DOMContentLoaded', () => {
                 }
 
                 mostrarError(mensaje);
-                btnLogin.disabled = false;
-                btnLogin.innerHTML = '<i class="fas fa-sign-in-alt"></i> Ingresar';
+                restaurarBotonLogin();
                 return;
             }
 
             // Verificar que el rol sea Administrador
             if (data.rol !== 'Administrador') {
                 mostrarError('Solo los administradores pueden acceder al panel.');
-                btnLogin.disabled = false;
-                btnLogin.innerHTML = '<i class="fas fa-sign-in-alt"></i> Ingresar';
+                restaurarBotonLogin();
                 return;
             }
 
@@ -90,8 +94,7 @@ document.addEventListener('DOMContentLoaded', () => {
         } catch (error) {
             console.error('Error al iniciar sesión:', error);
             mostrarError('Error de conexión. Intenta de nuevo.');
-            btnLogin.disabled = false;
-            btnLogin.innerHTML = '<i class="fas fa-sign-in-alt"></i> Ingresar';
+            restaurarBotonLogin();
         }
     });
 

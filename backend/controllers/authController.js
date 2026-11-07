@@ -9,6 +9,28 @@ const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
 const { pool } = require('../config/db');
 
+// RF-03: bloqueo de cuenta tras varios intentos fallidos
+const MAX_INTENTOS_FALLIDOS = 5;
+const MINUTOS_BLOQUEO = 5;
+
+// Suma un intento fallido al usuario y, si llega al máximo, bloquea la cuenta.
+// Devuelve el total de intentos fallidos acumulados.
+async function registrarIntentoFallido(user) {
+    const intentos = user.intentos_fallidos + 1;
+    let bloqueadoHasta = null;
+
+    if (intentos >= MAX_INTENTOS_FALLIDOS) {
+        bloqueadoHasta = new Date(Date.now() + MINUTOS_BLOQUEO * 60 * 1000);
+    }
+
+    await pool.query(
+        'UPDATE usuario SET intentos_fallidos = ?, bloqueado_hasta = ? WHERE id_usuario = ?',
+        [intentos, bloqueadoHasta, user.id_usuario]
+    );
+
+    return intentos;
+}
+
 // POST /api/auth/login
 exports.login = async (req, res) => {
     const { usuario, password } = req.body;
@@ -34,7 +56,7 @@ exports.login = async (req, res) => {
         // Verificar si la cuenta está bloqueada (RF-03)
         if (user.bloqueado_hasta && new Date(user.bloqueado_hasta) > new Date()) {
             return res.status(423).json({ 
-                mensaje: 'Superaste el número de intentos permitidos. Cuenta bloqueada por 5 minutos.' 
+                mensaje: `Superaste el número de intentos permitidos. Cuenta bloqueada por ${MINUTOS_BLOQUEO} minutos.` 
             });
         }
 
@@ -42,23 +64,12 @@ exports.login = async (req, res) => {
         const passwordValido = await bcrypt.compare(password, user.password_hash);
 
         if (!passwordValido) {
-            // Incrementar intentos fallidos
-            const intentos = user.intentos_fallidos + 1;
-            let bloqueadoHasta = null;
-
-            // RF-03: bloquear tras 5 intentos por 5 minutos
-            if (intentos >= 5) {
-                bloqueadoHasta = new Date(Date.now() + 5 * 60 * 1000); // 5 minutos
-            }
-
-            await pool.query(
-                'UPDATE usuario SET intentos_fallidos = ?, bloqueado_hasta = ? WHERE id_usuario = ?',
-                [intentos, bloqueadoHasta, user.id_usuario]
-            );
+            // Incrementar intentos fallidos (y bloquear si corresponde)
+            const intentos = await registrarIntentoFallido(user);
 
             return res.status(401).json({ 
                 mensaje: 'Usuario o contraseña incorrectos',
-                intentosRestantes: Math.max(0, 5 - intentos)
+                intentosRestantes: Math.max(0, MAX_INTENTOS_FALLIDOS - intentos)
             });
         }
 
