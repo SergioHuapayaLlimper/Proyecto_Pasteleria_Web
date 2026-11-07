@@ -281,7 +281,11 @@ async function enviarPedidoAWhatsApp(codigoPedido, pedido) {
     } catch (error) {
         console.error('Error al abrir WhatsApp:', error);
         // Si falla, al menos mostramos un aviso
-        alert('Pedido registrado. Puedes escribirnos por WhatsApp para confirmar.');
+        Dialogo.alerta({
+            titulo: 'Pedido registrado',
+            mensaje: `Tu pedido ${codigoPedido} fue registrado. Escríbenos por WhatsApp para confirmarlo.`,
+            tipo: 'exito'
+        });
     }
 }
 

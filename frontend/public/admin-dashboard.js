@@ -48,8 +48,14 @@ document.addEventListener('DOMContentLoaded', () => {
     });
 
     // Logout
-    document.getElementById('btn-logout').addEventListener('click', () => {
-        if (confirm('¿Cerrar sesión?')) {
+    document.getElementById('btn-logout').addEventListener('click', async () => {
+        const ok = await Dialogo.confirmar({
+            titulo: '¿Cerrar sesión?',
+            mensaje: 'Tendrás que volver a ingresar tus credenciales para acceder al panel.',
+            textoConfirmar: 'Cerrar sesión',
+            icono: 'fa-right-from-bracket'
+        });
+        if (ok) {
             localStorage.removeItem('token_admin');
             localStorage.removeItem('usuario_admin');
             window.location.href = 'admin-login.html';
@@ -185,14 +191,15 @@ async function exportarMetricas() {
         const datos = await res.json();
 
         if (!datos.length) {
-            alert('No hay datos para exportar.');
+            Dialogo.toast('No hay datos para exportar en el rango seleccionado.', 'aviso');
             return;
         }
 
         descargarExcel(datos, 'Reporte_Jorby');
+        Dialogo.toast('Reporte exportado correctamente.', 'exito');
     } catch (error) {
         console.error('Error al exportar:', error);
-        alert('Error al exportar');
+        Dialogo.toast('No se pudo exportar el reporte.', 'error');
     }
 }
 
@@ -281,27 +288,38 @@ async function guardarProducto(e) {
             body: JSON.stringify(payload)
         });
 
-        if (!res.ok) throw new Error('Error al guardar');
+        if (!res.ok) {
+            const data = await res.json().catch(() => ({}));
+            throw new Error(data.mensaje || 'No se pudo guardar el producto.');
+        }
 
         cerrarModalProducto();
         cargarProductos();
-        alert('Producto guardado correctamente');
+        Dialogo.toast('Producto guardado correctamente.', 'exito');
 
     } catch (error) {
         console.error('Error al guardar producto:', error);
-        alert('Error al guardar producto');
+        Dialogo.toast(error.message, 'error');
     }
 }
 
 async function desactivarProducto(id) {
-    if (!confirm('¿Desactivar este producto? Ya no aparecerá en el catálogo.')) return;
+    const ok = await Dialogo.confirmar({
+        titulo: '¿Desactivar producto?',
+        mensaje: 'Ya no aparecerá en el catálogo de la página principal. Podrás activarlo de nuevo editándolo.',
+        textoConfirmar: 'Desactivar',
+        tipo: 'peligro'
+    });
+    if (!ok) return;
 
     try {
-        await fetchAuth(`/api/productos/${id}`, { method: 'DELETE' });
+        const res = await fetchAuth(`/api/productos/${id}`, { method: 'DELETE' });
+        if (!res.ok) throw new Error();
         cargarProductos();
+        Dialogo.toast('Producto desactivado.', 'exito');
     } catch (error) {
         console.error('Error al desactivar:', error);
-        alert('Error al desactivar');
+        Dialogo.toast('No se pudo desactivar el producto.', 'error');
     }
 }
 
@@ -362,17 +380,28 @@ async function cargarPedidos() {
 }
 
 async function cambiarEstadoPedido(id, nuevoEstado) {
-    if (!confirm(`¿Marcar pedido como ${nuevoEstado}?`)) return;
+    const ok = await Dialogo.confirmar({
+        titulo: 'Cambiar estado del pedido',
+        mensaje: `¿Marcar este pedido como "${nuevoEstado}"?`,
+        textoConfirmar: `Marcar como ${nuevoEstado}`,
+        tipo: nuevoEstado === 'Cancelado' ? 'peligro' : 'pregunta'
+    });
+    if (!ok) return;
 
     try {
-        await fetchAuth(`/api/pedidos/${id}/estado`, {
+        const res = await fetchAuth(`/api/pedidos/${id}/estado`, {
             method: 'PUT',
             body: JSON.stringify({ estado: nuevoEstado })
         });
+        if (!res.ok) {
+            const data = await res.json().catch(() => ({}));
+            throw new Error(data.mensaje || 'No se pudo cambiar el estado.');
+        }
         cargarPedidos();
+        Dialogo.toast(`Pedido marcado como ${nuevoEstado}.`, 'exito');
     } catch (error) {
         console.error('Error:', error);
-        alert('Error al cambiar estado');
+        Dialogo.toast(error.message, 'error');
     }
 }
 
@@ -384,14 +413,15 @@ async function exportarPedidos() {
         const pedidos = await res.json();
 
         if (!pedidos.length) {
-            alert('No hay pedidos para exportar.');
+            Dialogo.toast('No hay pedidos para exportar con los filtros actuales.', 'aviso');
             return;
         }
 
         descargarExcel(pedidos, 'Pedidos_Jorby');
+        Dialogo.toast('Pedidos exportados correctamente.', 'exito');
     } catch (error) {
         console.error('Error al exportar:', error);
-        alert('Error al exportar');
+        Dialogo.toast('No se pudo exportar los pedidos.', 'error');
     }
 }
 
@@ -447,7 +477,7 @@ document.addEventListener('input', (e) => {
 
 function mostrarMensajeConfig(texto, tipo) {
     const caja = document.getElementById('cfg-mensaje');
-    if (!caja) return alert(texto);
+    if (!caja) return Dialogo.toast(texto, tipo);
     caja.textContent = texto;
     caja.className = `cfg-mensaje ${tipo}`;
     caja.style.display = 'block';
@@ -476,6 +506,7 @@ async function guardarConfiguracion(e) {
         if (!res.ok) throw new Error(data.mensaje || 'Error al guardar la configuración');
 
         mostrarMensajeConfig('Configuración guardada. Los cambios ya se ven en la página principal.', 'exito');
+        Dialogo.toast('Configuración guardada.', 'exito');
         cargarConfiguracion(); // muestra los valores tal como quedaron guardados
     } catch (error) {
         console.error('Error al guardar configuración:', error);

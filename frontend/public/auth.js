@@ -18,10 +18,29 @@ document.addEventListener('DOMContentLoaded', () => {
         return;
     }
 
-    // Mostrar mensaje de error
+    // Mostrar/ocultar contraseña
+    const btnVerPassword = document.getElementById('btn-ver-password');
+    const inputPassword = document.getElementById('password');
+    if (btnVerPassword && inputPassword) {
+        btnVerPassword.addEventListener('click', () => {
+            const oculto = inputPassword.type === 'password';
+            inputPassword.type = oculto ? 'text' : 'password';
+            btnVerPassword.innerHTML = oculto ? '<i class="fas fa-eye-slash"></i>' : '<i class="fas fa-eye"></i>';
+            btnVerPassword.setAttribute('aria-label', oculto ? 'Ocultar contraseña' : 'Mostrar contraseña');
+        });
+    }
+
+    // Año actual en el pie del panel de marca
+    const anioLogin = document.getElementById('anio-login');
+    if (anioLogin) anioLogin.textContent = new Date().getFullYear();
+
+    // Mostrar mensaje de error (se reinicia la animación en cada intento)
     function mostrarError(mensaje) {
-        loginError.textContent = mensaje;
-        loginError.style.display = 'block';
+        loginError.style.display = 'none';
+        void loginError.offsetWidth;
+        loginError.innerHTML = '<i class="fas fa-circle-exclamation"></i>';
+        loginError.appendChild(document.createTextNode(' ' + mensaje));
+        loginError.style.display = 'flex';
     }
 
     // Ocultar mensaje de error
