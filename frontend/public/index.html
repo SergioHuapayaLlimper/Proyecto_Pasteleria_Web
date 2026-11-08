@@ -32,15 +32,14 @@
         </a>
         <nav class="nav" id="nav">
             <a href="#productos">Productos</a>
-            <a href="#ubicacion">Ubicación</a>
-            <a href="#horarios">Horarios</a>
-            <a href="#pagos">Métodos de Pago</a>
+            <a href="#ubicacion">Información</a>
             <a href="#contacto">Contacto</a>
         </nav>
         <div class="header-acciones">
-            <button id="btn-acceso" class="btn-acceso">
+            <!-- Acceso directo al login del panel administrativo -->
+            <a href="admin-login.html" id="btn-acceso" class="btn-acceso">
                 <i class="fas fa-user"></i> Acceso
-            </button>
+            </a>
             <button class="btn-menu" id="btn-menu" aria-label="Abrir menú" aria-expanded="false" aria-controls="nav">
                 <i class="fas fa-bars"></i>
             </button>
@@ -153,24 +152,6 @@
         <span id="contador-carrito">0</span>
     </button>
 
-    <!-- MODAL DE ACCESO -->
-    <div id="modal-acceso" class="modal">
-        <div class="modal-content" role="dialog" aria-modal="true" aria-labelledby="titulo-acceso">
-            <span class="close" aria-label="Cerrar">&times;</span>
-            <span class="modal-icono"><i class="fas fa-birthday-cake"></i></span>
-            <h2 id="titulo-acceso">Selecciona tu tipo de acceso</h2>
-            <p class="modal-sub">¿Cómo deseas ingresar?</p>
-            <div class="modal-botones">
-                <button id="btn-cliente" class="btn-modal btn-cliente">
-                    <i class="fas fa-user"></i> Cliente
-                </button>
-                <button id="btn-admin" class="btn-modal btn-admin">
-                    <i class="fas fa-user-shield"></i> Administrador
-                </button>
-            </div>
-        </div>
-    </div>
-
     <!-- MODAL DEL CARRITO -->
     <div id="modal-carrito" class="modal-carrito">
         <div class="carrito-contenido" role="dialog" aria-modal="true" aria-labelledby="titulo-carrito">
@@ -256,9 +237,8 @@
                 <h4>Explora</h4>
                 <ul>
                     <li><a href="#productos">Productos</a></li>
-                    <li><a href="#ubicacion">Ubicación</a></li>
-                    <li><a href="#horarios">Horarios</a></li>
-                    <li><a href="#pagos">Métodos de Pago</a></li>
+                    <li><a href="#ubicacion">Información</a></li>
+                    <li><a href="#contacto">Contacto</a></li>
                 </ul>
             </div>
             <div>

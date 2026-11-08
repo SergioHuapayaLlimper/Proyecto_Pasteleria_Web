@@ -31,7 +31,24 @@ function ocultarErrorCheckout() {
 // Bloquea/habilita el botón de confirmar mientras se envía el pedido.
 function marcarEnvioEnCurso(enviando) {
     btnConfirmar.disabled = enviando;
-    btnConfirmar.textContent = enviando ? 'Enviando...' : 'Confirmar Pedido';
+    btnConfirmar.innerHTML = enviando
+        ? '<i class="fas fa-spinner fa-spin"></i> Enviando...'
+        : '<i class="fas fa-check"></i> Confirmar Pedido';
+}
+
+// Deja el formulario listo para un nuevo pedido.
+// Se conservan nombre y teléfono para no volver a escribirlos.
+function reiniciarFormularioPedido() {
+    marcarEnvioEnCurso(false);
+    ocultarErrorCheckout();
+    ['direccion-entrega', 'referencia-entrega', 'fecha-entrega', 'metodo-pago'].forEach(id => {
+        const campo = document.getElementById(id);
+        if (campo) campo.value = '';
+    });
+    const delivery = document.querySelector('input[name="modo-entrega"][value="Delivery"]');
+    if (delivery) delivery.checked = true;
+    actualizarModoEntrega();
+    prepararFechaEntrega();
 }
 
 // Subtotal de una línea del carrito (precio x cantidad).
@@ -284,10 +301,11 @@ async function enviarPedido(e) {
         totalCarrito.textContent = '';
         formCheckout.style.display = 'none';
 
-        // Limpiar carrito
+        // Limpiar carrito y dejar el formulario listo para otro pedido
         carrito = [];
         guardarCarrito();
         contadorCarrito.textContent = '0';
+        reiniciarFormularioPedido();
 
         // === ENVIAR A WHATSAPP (HU08 - mejora) ===
         // Esperar 2 segundos antes de abrir WhatsApp para que el usuario vea el mensaje
