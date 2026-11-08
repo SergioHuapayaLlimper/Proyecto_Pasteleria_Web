@@ -69,6 +69,7 @@ function guardarCarrito() {
 
 // ---- ABRIR MODAL ----
 function abrirCarrito() {
+    prepararFechaEntrega(); // por si la página quedó abierta desde ayer
     modalCarrito.classList.add('activo');
     renderizarCarrito();
 }
@@ -145,6 +146,52 @@ function eliminarDelCarrito(id) {
     renderizarCarrito();
 }
 
+// ---- DATOS DE ENTREGA (HU08) ----
+// Fecha local AAAA-MM-DD
+function fechaISO(fecha) {
+    const a = fecha.getFullYear();
+    const m = String(fecha.getMonth() + 1).padStart(2, '0');
+    const d = String(fecha.getDate()).padStart(2, '0');
+    return `${a}-${m}-${d}`;
+}
+
+// Rango permitido para la fecha de entrega: de mañana a 90 días
+function rangoFechaEntrega(hoy = new Date()) {
+    const manana = new Date(hoy.getFullYear(), hoy.getMonth(), hoy.getDate() + 1);
+    const maxima = new Date(hoy.getFullYear(), hoy.getMonth(), hoy.getDate() + 90);
+    return { min: fechaISO(manana), max: fechaISO(maxima) };
+}
+
+// "2026-11-10" -> "martes 10 de noviembre de 2026"
+function fechaLegible(iso) {
+    const [a, m, d] = iso.split('-').map(Number);
+    return new Date(a, m - 1, d).toLocaleDateString('es-PE', {
+        weekday: 'long', day: 'numeric', month: 'long', year: 'numeric'
+    });
+}
+
+function modoEntregaSeleccionado() {
+    const marcado = document.querySelector('input[name="modo-entrega"]:checked');
+    return marcado ? marcado.value : '';
+}
+
+// Muestra la dirección solo para delivery y ajusta la etiqueta de la fecha
+function actualizarModoEntrega() {
+    const esDelivery = modoEntregaSeleccionado() === 'Delivery';
+    document.getElementById('campos-delivery').hidden = !esDelivery;
+    document.getElementById('aviso-recojo').hidden = esDelivery;
+    document.getElementById('label-fecha-entrega').textContent = esDelivery ? 'Fecha de entrega *' : 'Fecha de recojo *';
+    document.getElementById('direccion-entrega').required = esDelivery;
+}
+
+function prepararFechaEntrega() {
+    const input = document.getElementById('fecha-entrega');
+    const { min, max } = rangoFechaEntrega();
+    input.min = min;
+    input.max = max;
+    if (input.value && (input.value < min || input.value > max)) input.value = '';
+}
+
 // ---- VALIDAR TELÉFONO (RF-25) ----
 function validarTelefono(telefono) {
     const limpio = telefono.replace(/\D/g, '');
@@ -158,11 +205,16 @@ async function enviarPedido(e) {
     const nombre = document.getElementById('cliente-nombre').value.trim();
     const telefono = document.getElementById('cliente-telefono').value.trim();
     const metodoPago = document.getElementById('metodo-pago').value;
+    const modoEntrega = modoEntregaSeleccionado();
+    const esDelivery = modoEntrega === 'Delivery';
+    const direccion = esDelivery ? document.getElementById('direccion-entrega').value.trim() : '';
+    const referencia = esDelivery ? document.getElementById('referencia-entrega').value.trim() : '';
+    const fechaEntrega = document.getElementById('fecha-entrega').value;
 
     ocultarErrorCheckout();
 
     // Validaciones (RF-25)
-    if (!nombre || !telefono || !metodoPago) {
+    if (!nombre || !telefono || !metodoPago || !modoEntrega || !fechaEntrega || (esDelivery && !direccion)) {
         mostrarErrorCheckout('Todos los campos son obligatorios.');
         return;
     }
@@ -172,11 +224,30 @@ async function enviarPedido(e) {
         return;
     }
 
+    if (esDelivery && direccion.length < 5) {
+        mostrarErrorCheckout('Escribe una dirección de entrega más completa.');
+        return;
+    }
+
+    const rango = rangoFechaEntrega();
+    if (fechaEntrega < rango.min) {
+        mostrarErrorCheckout('La fecha debe ser posterior al día de hoy.');
+        return;
+    }
+    if (fechaEntrega > rango.max) {
+        mostrarErrorCheckout('Solo se aceptan pedidos con hasta 90 días de anticipación.');
+        return;
+    }
+
     // Armar payload
     const payload = {
         cliente_nombre: nombre,
         cliente_telefono: telefono,
         metodo_pago: metodoPago,
+        modo_entrega: modoEntrega,
+        direccion_entrega: direccion,
+        referencia_entrega: referencia,
+        fecha_entrega: fechaEntrega,
         productos: carrito.map(p => ({
             id: p.id,
             nombre: p.nombre,
@@ -225,6 +296,10 @@ async function enviarPedido(e) {
                 nombre,
                 telefono,
                 metodoPago,
+                modoEntrega,
+                direccion,
+                referencia,
+                fechaEntrega,
                 productos: payload.productos,
                 total: data.monto_total
             });
@@ -244,6 +319,18 @@ function construirMensajePedido(codigoPedido, pedido) {
     mensaje += `👤 *Cliente:* ${pedido.nombre}\n`;
     mensaje += `📞 *Teléfono:* ${pedido.telefono}\n`;
     mensaje += `💳 *Método de pago:* ${pedido.metodoPago}\n\n`;
+
+    // Datos de entrega (HU08)
+    if (pedido.modoEntrega === 'Delivery') {
+        mensaje += `🛵 *Modo de entrega:* Delivery\n`;
+        mensaje += `📍 *Dirección:* ${pedido.direccion}\n`;
+        if (pedido.referencia) mensaje += `🧭 *Referencia:* ${pedido.referencia}\n`;
+        mensaje += `📅 *Fecha de entrega:* ${fechaLegible(pedido.fechaEntrega)}\n\n`;
+    } else {
+        mensaje += `🏪 *Modo de entrega:* Recojo en tienda\n`;
+        mensaje += `📅 *Fecha de recojo:* ${fechaLegible(pedido.fechaEntrega)}\n\n`;
+    }
+
     mensaje += `🛒 *Productos:*\n`;
 
     pedido.productos.forEach(p => {
@@ -301,6 +388,19 @@ document.addEventListener('DOMContentLoaded', () => {
     window.addEventListener('click', (e) => {
         if (e.target === modalCarrito) cerrarCarrito();
     });
+
+    // Modo y fecha de entrega
+    document.querySelectorAll('input[name="modo-entrega"]').forEach(r =>
+        r.addEventListener('change', actualizarModoEntrega));
+    prepararFechaEntrega();
+    actualizarModoEntrega();
+
+    // Dirección de la tienda para el aviso de recojo
+    if (typeof obtenerConfigNegocio === 'function') {
+        obtenerConfigNegocio().then(cfg => {
+            if (cfg.direccion) document.getElementById('direccion-tienda').textContent = `Dirección: ${cfg.direccion}.`;
+        }).catch(() => {});
+    }
 
     // Enviar pedido
     formCheckout.addEventListener('submit', enviarPedido);

@@ -70,9 +70,6 @@ async function actualizarPerfil() {
 
 // Oculta del menú las secciones a las que el rol no tiene acceso
 function aplicarPermisosUI() {
-    // Sin permiso para gestionar pedidos: se oculta la columna "Acciones" (ej. Contador)
-    document.getElementById('tabla-historial-pedidos')
-        .classList.toggle('sin-acciones', !tienePermiso('pedidos_estado'));
 
     document.querySelectorAll('[data-permiso]').forEach(el => {
         el.style.display = tienePermiso(el.dataset.permiso) ? '' : 'none';
@@ -158,6 +155,12 @@ document.addEventListener('DOMContentLoaded', async () => {
 
     // Formulario de configuración
     document.getElementById('form-config').addEventListener('submit', guardarConfiguracion);
+
+    // Detalle del pedido: cerrar con la X, clic fuera o Esc
+    const modalDetalle = document.getElementById('modal-detalle-pedido');
+    document.getElementById('cerrar-detalle-pedido').addEventListener('click', cerrarDetallePedido);
+    modalDetalle.addEventListener('click', (e) => { if (e.target === modalDetalle) cerrarDetallePedido(); });
+    document.addEventListener('keydown', (e) => { if (e.key === 'Escape') cerrarDetallePedido(); });
 });
 
 // ---- CAMBIAR SECCIÓN ----
@@ -512,7 +515,7 @@ async function cargarPedidos() {
         if (!pedidos.length) {
             const hayFiltros = params.toString() !== '';
             tbody.innerHTML = `
-                <tr><td colspan="8">
+                <tr><td colspan="9">
                     <div class="estado-vacio en-tabla">
                         <i class="fas fa-calendar-xmark"></i>
                         <h3>${hayFiltros ? 'No hay pedidos para los filtros seleccionados' : 'Aún no hay pedidos registrados'}</h3>
@@ -537,7 +540,11 @@ async function cargarPedidos() {
                 <td>S/ ${parseFloat(p.monto_total).toFixed(2)}</td>
                 <td><span class="badge badge-${p.estado.toLowerCase()}">${p.estado}</span></td>
                 <td>${new Date(p.creado_en).toLocaleString('es-PE', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' })}</td>
+                <td>${celdaEntrega(p)}</td>
                 <td>
+                    <button class="btn-sm btn-ver-detalle" onclick="verDetallePedido(${p.id})" title="Ver detalle del pedido">
+                        <i class="fas fa-eye"></i>
+                    </button>
                     ${p.estado === 'Pendiente' && tienePermiso('pedidos_estado') ? `
                         <button class="btn-sm btn-completar" onclick="cambiarEstadoPedido(${p.id}, 'Completado')">
                             <i class="fas fa-check"></i>
@@ -545,7 +552,7 @@ async function cargarPedidos() {
                         <button class="btn-sm btn-eliminar" onclick="cambiarEstadoPedido(${p.id}, 'Cancelado')">
                             <i class="fas fa-times"></i>
                         </button>
-                    ` : '-'}
+                    ` : ''}
                 </td>
             </tr>
         `).join('');
@@ -556,6 +563,130 @@ async function cargarPedidos() {
     } finally {
         if (turno === turnoPedidos) seccion.classList.remove('cargando');
     }
+}
+
+// =====================================================
+// DETALLE DEL PEDIDO (HU07) - solo lectura, Admin y Contador
+// =====================================================
+function formatoSoles(valor) {
+    return `S/ ${Number(valor || 0).toFixed(2)}`;
+}
+
+function fechaLargaDesdeISO(iso) {
+    if (!iso) return '-';
+    const [a, m, d] = iso.split('-').map(Number);
+    const texto = new Date(a, m - 1, d).toLocaleDateString('es-PE', {
+        weekday: 'long', day: 'numeric', month: 'long', year: 'numeric'
+    });
+    return texto.charAt(0).toUpperCase() + texto.slice(1);
+}
+
+async function verDetallePedido(id) {
+    const modal = document.getElementById('modal-detalle-pedido');
+    const contenido = document.getElementById('detalle-pedido-contenido');
+    contenido.innerHTML = '<p class="vacio"><i class="fas fa-spinner fa-spin"></i> Cargando detalle...</p>';
+    modal.classList.add('activo');
+
+    try {
+        const res = await fetchAuth(`/api/pedidos/${id}`);
+        const p = await res.json();
+        if (!res.ok) throw new Error(p.mensaje || 'No se pudo cargar el pedido.');
+
+        const sumaProductos = p.detalle.reduce((a, d) => a + d.subtotal, 0);
+        const cantidadTotal = p.detalle.reduce((a, d) => a + d.cantidad, 0);
+        const esDelivery = p.modo_entrega !== 'Recojo en tienda';
+        const fechaPedido = new Date(p.creado_en).toLocaleString('es-PE', {
+            day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit'
+        });
+
+        const filas = p.detalle.length
+            ? p.detalle.map(d => `
+                <tr>
+                    <td><strong>${escaparHTML(d.producto_nombre)}</strong></td>
+                    <td><span class="badge badge-rol">${escaparHTML(d.categoria || 'Sin categoría')}</span></td>
+                    <td class="num">${d.cantidad}</td>
+                    <td class="num">${formatoSoles(d.precio_unitario)}</td>
+                    <td class="num"><strong>${formatoSoles(d.subtotal)}</strong></td>
+                </tr>`).join('')
+            : '<tr><td colspan="5" class="vacio">Este pedido no tiene productos registrados.</td></tr>';
+
+        contenido.innerHTML = `
+            <header class="detalle-cabecera">
+                <div>
+                    <span class="detalle-etiqueta">Pedido</span>
+                    <h2 id="detalle-titulo">${escaparHTML(p.codigo_pedido)}</h2>
+                    <small class="texto-suave">Registrado el ${fechaPedido}</small>
+                </div>
+                <span class="badge badge-${escaparHTML(p.estado.toLowerCase())} badge-grande">${escaparHTML(p.estado)}</span>
+            </header>
+
+            <div class="detalle-bloques">
+                <section class="detalle-bloque">
+                    <h4><i class="fas fa-user"></i> Cliente</h4>
+                    <p><strong>${escaparHTML(p.cliente_nombre)}</strong></p>
+                    <p><i class="fas fa-phone"></i> ${escaparHTML(p.cliente_telefono || '-')}</p>
+                    <p><i class="fas fa-wallet"></i> Pago: ${escaparHTML(p.metodo_pago)}</p>
+                </section>
+                <section class="detalle-bloque">
+                    <h4><i class="fas ${esDelivery ? 'fa-motorcycle' : 'fa-store'}"></i> Entrega</h4>
+                    ${p.fecha_entrega ? `
+                        <p><strong>${esDelivery ? 'Delivery' : 'Recojo en tienda'}</strong></p>
+                        <p><i class="fas fa-calendar-day"></i> ${esDelivery ? 'Envío' : 'Recojo'}: ${fechaLargaDesdeISO(p.fecha_entrega)}</p>
+                        ${esDelivery ? `
+                            <p><i class="fas fa-location-dot"></i> ${escaparHTML(p.direccion_entrega || '-')}</p>
+                            ${p.referencia_entrega ? `<p><i class="fas fa-compass"></i> Ref.: ${escaparHTML(p.referencia_entrega)}</p>` : ''}
+                        ` : ''}
+                    ` : '<p class="texto-suave">Este pedido se registró antes de que existieran los datos de entrega.</p>'}
+                </section>
+            </div>
+
+            <h4 class="detalle-subtitulo"><i class="fas fa-basket-shopping"></i> Productos (${cantidadTotal} unidad${cantidadTotal === 1 ? '' : 'es'})</h4>
+            <div class="tabla-container detalle-tabla">
+                <table class="tabla">
+                    <thead>
+                        <tr>
+                            <th>Producto</th>
+                            <th>Categoría</th>
+                            <th class="num">Cant.</th>
+                            <th class="num">P. unitario</th>
+                            <th class="num">Subtotal</th>
+                        </tr>
+                    </thead>
+                    <tbody>${filas}</tbody>
+                </table>
+            </div>
+
+            <div class="detalle-resumen">
+                <div><span>Subtotal de productos</span><span>${formatoSoles(sumaProductos)}</span></div>
+                <div class="detalle-total"><span>Total a pagar</span><span>${formatoSoles(p.monto_total)}</span></div>
+                ${Math.abs(sumaProductos - p.monto_total) > 0.009
+                    ? '<p class="detalle-alerta"><i class="fas fa-triangle-exclamation"></i> El total registrado no coincide con la suma de los productos.</p>'
+                    : ''}
+            </div>`;
+    } catch (error) {
+        console.error('Error al ver detalle:', error);
+        contenido.innerHTML = `<p class="vacio">${escaparHTML(error.message)}</p>`;
+    }
+}
+
+function cerrarDetallePedido() {
+    document.getElementById('modal-detalle-pedido').classList.remove('activo');
+}
+
+// Modo, fecha y dirección de entrega (HU08)
+function celdaEntrega(p) {
+    if (!p.fecha_entrega) return '<span class="texto-suave">-</span>';
+    const [a, m, d] = p.fecha_entrega.split('-');
+    const esDelivery = p.modo_entrega !== 'Recojo en tienda';
+    const lugar = esDelivery
+        ? `${escaparHTML(p.direccion_entrega || '')}${p.referencia_entrega ? ` <em>(${escaparHTML(p.referencia_entrega)})</em>` : ''}`
+        : 'Recoge en tienda';
+    return `
+        <span class="badge ${esDelivery ? 'badge-delivery' : 'badge-recojo'}">
+            <i class="fas ${esDelivery ? 'fa-motorcycle' : 'fa-store'}"></i> ${esDelivery ? 'Delivery' : 'Recojo'}
+        </span>
+        <strong class="fecha-entrega">${d}/${m}/${a}</strong>
+        <small class="texto-suave">${lugar}</small>`;
 }
 
 async function cambiarEstadoPedido(id, nuevoEstado) {

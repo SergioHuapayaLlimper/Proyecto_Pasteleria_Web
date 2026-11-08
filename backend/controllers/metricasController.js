@@ -92,7 +92,9 @@ exports.exportarMetricas = async (req, res) => {
 
     let sql = `
         SELECT codigo_pedido, cliente_nombre AS cliente, metodo_pago, 
-               estado, total AS monto_total, creado_en
+               estado, total AS monto_total, creado_en,
+               modo_entrega, DATE_FORMAT(fecha_entrega, '%Y-%m-%d') AS fecha_entrega,
+               direccionEntrega AS direccion_entrega
         FROM pedidos 
         WHERE 1=1
     `;

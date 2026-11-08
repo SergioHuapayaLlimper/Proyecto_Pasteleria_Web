@@ -1510,3 +1510,89 @@ a {
         transform: none;
     }
 }
+
+/* ============================================
+   DATOS DE ENTREGA (checkout)
+   ============================================ */
+.grupo-entrega {
+    border: none;
+    margin-bottom: 16px;
+}
+
+.grupo-entrega legend {
+    font-weight: 600;
+    font-size: 0.85rem;
+    color: var(--color-texto-suave);
+    margin-bottom: 6px;
+}
+
+.opciones-entrega {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 10px;
+}
+
+.opcion-entrega {
+    position: relative;
+    cursor: pointer;
+    margin: 0 !important;
+}
+
+.opcion-entrega input {
+    position: absolute;
+    opacity: 0;
+    width: 1px;
+    height: 1px;
+}
+
+.opcion-entrega span {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    padding: 12px 10px;
+    border: 1.5px solid var(--color-borde);
+    border-radius: 12px;
+    background: var(--color-fondo);
+    font-weight: 600;
+    color: var(--color-oscuro);
+    transition: border-color 0.2s, background 0.2s, color 0.2s;
+}
+
+.opcion-entrega input:checked + span {
+    border-color: var(--color-secundario);
+    background: var(--color-rosa-suave);
+    color: var(--color-secundario);
+}
+
+.opcion-entrega input:focus-visible + span {
+    outline: 3px solid var(--color-primario);
+    outline-offset: 2px;
+}
+
+.aviso-recojo {
+    padding: 12px 14px;
+    margin-bottom: 16px;
+    border-radius: 12px;
+    background: var(--color-crema);
+    color: var(--color-oscuro);
+    font-size: 0.9rem;
+}
+
+.aviso-recojo i {
+    color: var(--color-secundario);
+    margin-right: 4px;
+}
+
+.aviso-recojo span {
+    display: block;
+    color: var(--color-texto-suave);
+    margin-top: 2px;
+}
+
+.ayuda-fecha {
+    display: block;
+    margin: -10px 0 16px;
+    font-size: 0.78rem;
+    color: var(--color-texto-suave);
+}

@@ -81,8 +81,12 @@ CREATE TABLE IF NOT EXISTS pedidos (
     total            DECIMAL(10,2) NOT NULL,
     metodo_pago      VARCHAR(30)   NOT NULL,
     estado           VARCHAR(20)   NOT NULL DEFAULT 'Pendiente',
-    direccionEntrega VARCHAR(150)  NULL,
+    modo_entrega       VARCHAR(20)  NOT NULL DEFAULT 'Delivery', -- 'Delivery' o 'Recojo en tienda'
+    direccionEntrega   VARCHAR(150) NULL,   -- dirección de entrega (solo delivery) (HU08)
+    referencia_entrega VARCHAR(150) NULL,   -- referencia opcional para encontrar la dirección
+    fecha_entrega      DATE         NULL,   -- fecha de envío o recojo elegida por el cliente (solo futura)
     UNIQUE KEY uk_codigo_pedido (codigo_pedido),
+    KEY idx_pedidos_fecha_entrega (fecha_entrega),
     CONSTRAINT fk_pedidos_cliente FOREIGN KEY (id_cliente) REFERENCES cliente (id_cliente)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 

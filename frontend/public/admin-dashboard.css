@@ -1047,11 +1047,6 @@ body.dashboard-body {
     }
 }
 
-/* Roles sin permiso para gestionar pedidos no ven la columna de acciones */
-.tabla.sin-acciones th:last-child,
-.tabla.sin-acciones td:last-child:not([colspan]) {
-    display: none;
-}
 
 /* Categorías */
 .texto-suave {
@@ -1064,4 +1059,143 @@ body.dashboard-body {
 .ayuda-campo a {
     color: var(--color-secundario);
     font-weight: 600;
+}
+
+/* Datos de entrega en el historial de pedidos */
+.badge-delivery { background: #e6f1fb; color: #1d5f99; }
+.badge-recojo { background: #f3e8e4; color: var(--color-secundario); }
+.fecha-entrega { display: block; margin-top: 4px; font-size: 0.9rem; }
+#tabla-historial-pedidos td:nth-child(1),
+#tabla-historial-pedidos td:nth-child(5) {
+    white-space: nowrap;
+}
+
+/* ============================================
+   DETALLE DEL PEDIDO (modal de solo lectura)
+   ============================================ */
+.btn-ver-detalle {
+    background: #f3e8e4;
+    color: var(--color-secundario);
+}
+
+.btn-ver-detalle:hover {
+    background: var(--color-secundario);
+    color: #fff;
+}
+
+.modal-content.modal-ancho {
+    max-width: 760px;
+    padding: 32px;
+}
+
+.detalle-cabecera {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    gap: 16px;
+    padding-right: 30px;
+    margin-bottom: 22px;
+}
+
+.detalle-cabecera h2 {
+    margin: 2px 0 4px !important;
+    color: var(--color-oscuro) !important;
+    font-size: 1.5rem;
+}
+
+.detalle-etiqueta {
+    font-size: 0.72rem;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: var(--color-secundario);
+    font-weight: 700;
+}
+
+.badge-grande {
+    font-size: 0.85rem;
+    padding: 6px 14px;
+}
+
+.detalle-bloques {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 14px;
+    margin-bottom: 22px;
+}
+
+.detalle-bloque {
+    background: #fbf7f5;
+    border: 1px solid #efe3de;
+    border-radius: 12px;
+    padding: 16px 18px;
+}
+
+.detalle-bloque h4,
+.detalle-subtitulo {
+    color: var(--color-secundario);
+    font-size: 0.95rem;
+    margin-bottom: 10px;
+}
+
+.detalle-bloque p {
+    font-size: 0.92rem;
+    margin-bottom: 5px;
+    color: #4a3a38;
+}
+
+.detalle-bloque p i {
+    width: 18px;
+    color: var(--color-primario);
+}
+
+.detalle-tabla {
+    box-shadow: none;
+    border: 1px solid #efe3de;
+}
+
+.detalle-tabla .tabla th,
+.detalle-tabla .tabla td {
+    padding: 11px 14px;
+}
+
+.tabla .num {
+    text-align: right;
+    white-space: nowrap;
+}
+
+.detalle-resumen {
+    margin-top: 16px;
+    margin-left: auto;
+    max-width: 320px;
+}
+
+.detalle-resumen > div {
+    display: flex;
+    justify-content: space-between;
+    padding: 6px 0;
+    color: #6b5450;
+}
+
+.detalle-total {
+    border-top: 2px solid var(--color-primario);
+    margin-top: 4px;
+    padding-top: 10px !important;
+    font-size: 1.2rem;
+    font-weight: 700;
+    color: var(--color-oscuro) !important;
+}
+
+.detalle-alerta {
+    margin-top: 8px;
+    padding: 8px 10px;
+    border-radius: 8px;
+    background: #fff3cd;
+    color: #856404;
+    font-size: 0.82rem;
+}
+
+@media (max-width: 640px) {
+    .detalle-bloques {
+        grid-template-columns: 1fr;
+    }
 }

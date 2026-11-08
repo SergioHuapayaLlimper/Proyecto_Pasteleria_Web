@@ -32,11 +32,22 @@
         { claves: ['cliente_telefono'], titulo: 'Teléfono', ancho: 14 },
         { claves: ['metodo_pago'], titulo: 'Método de pago', ancho: 16 },
         { claves: ['estado'], titulo: 'Estado', ancho: 14, tipo: 'estado' },
+        { claves: ['modo_entrega'], titulo: 'Modo de entrega', ancho: 17 },
+        { claves: ['fecha_entrega'], titulo: 'Fecha de entrega', ancho: 15, tipo: 'fechaSolo' },
+        { claves: ['direccion_entrega'], titulo: 'Dirección de entrega', ancho: 34 },
         { claves: ['monto_total'], titulo: 'Monto', ancho: 14, tipo: 'moneda' }
     ];
 
     const FORMATO_MONEDA = '"S/" #,##0.00';
     const FORMATO_FECHA = 'dd/mm/yyyy hh:mm';
+    const FORMATO_FECHA_SOLO = 'dd/mm/yyyy';
+
+    // "AAAA-MM-DD" -> fecha de Excel (sin desfase de zona horaria)
+    function aFechaSolo(texto) {
+        if (!texto) return null;
+        const [a, m, d] = String(texto).slice(0, 10).split('-').map(Number);
+        return new Date(Date.UTC(a, m - 1, d));
+    }
 
     const borde = (color = MARCA.borde) => ({
         top: { style: 'thin', color: { argb: color } },
@@ -132,12 +143,15 @@
                 let valor = dato[c.clave];
                 if (c.tipo === 'moneda') valor = Number(valor) || 0;
                 if (c.tipo === 'fecha') valor = aFechaLocal(valor);
+                if (c.tipo === 'fechaSolo') valor = aFechaSolo(valor);
+                if (c.clave === 'direccion_entrega' && !valor && dato.modo_entrega === 'Recojo en tienda') valor = 'Recojo en tienda';
                 celda.value = valor ?? '';
                 celda.border = borde();
                 celda.fill = relleno(fondoFila);
                 celda.alignment = { vertical: 'middle', indent: c.tipo ? 0 : 1 };
                 if (c.tipo === 'moneda') { celda.numFmt = FORMATO_MONEDA; celda.alignment.horizontal = 'right'; }
                 if (c.tipo === 'fecha') { celda.numFmt = FORMATO_FECHA; celda.alignment.horizontal = 'center'; }
+                if (c.tipo === 'fechaSolo') { celda.numFmt = FORMATO_FECHA_SOLO; celda.alignment.horizontal = 'center'; }
                 if (c.tipo === 'estado') {
                     const e = ESTADOS[valor];
                     celda.alignment.horizontal = 'center';

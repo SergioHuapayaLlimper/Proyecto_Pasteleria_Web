@@ -9,18 +9,16 @@ const { pool } = require('../config/db');
 const { filtroRangoFechas, validarRangoFechas } = require('../utils/filtros');
 
 // Valores permitidos (un solo lugar para validarlos)
-const METODOS_PAGO = ['Efectivo', 'Yape'];
+const { validarPedido, hoyEnPeru } = require('../utils/validarPedido');
 const ESTADOS_PEDIDO = ['Pendiente', 'Completado', 'Cancelado'];
 const TIPOS_CONSULTA = ['whatsapp', 'contacto', 'pedido'];
 
 // Genera un código único para el pedido tipo "PED-20241215-1234"
+// Código del pedido con la fecha de Perú (no UTC): PED-AAAAMMDD-NNNN
 function generarCodigoPedido() {
-    const fecha = new Date();
-    const y = fecha.getFullYear();
-    const m = String(fecha.getMonth() + 1).padStart(2, '0');
-    const d = String(fecha.getDate()).padStart(2, '0');
+    const fecha = hoyEnPeru().replace(/-/g, '');
     const random = Math.floor(Math.random() * 9000) + 1000;
-    return `PED-${y}${m}${d}-${random}`;
+    return `PED-${fecha}-${random}`;
 }
 
 // Subtotal de una línea del pedido: { precio, cantidad }
@@ -30,40 +28,29 @@ function calcularSubtotal(p) {
 
 // Valida los datos del pedido (RF-24, RF-25).
 // Devuelve el mensaje de error o null si todo es correcto.
-function validarPedido({ cliente_nombre, cliente_telefono, metodo_pago, productos }) {
-    if (!cliente_nombre || !cliente_telefono || !metodo_pago || !productos || !productos.length) {
-        return 'Todos los campos son obligatorios';
-    }
-
-    // Validar formato de teléfono
-    const telefonoLimpio = cliente_telefono.replace(/\D/g, '');
-    if (telefonoLimpio.length < 9) {
-        return 'El teléfono debe tener al menos 9 dígitos';
-    }
-
-    // Validar método de pago (RF-24)
-    if (!METODOS_PAGO.includes(metodo_pago)) {
-        return 'Método de pago no válido';
-    }
-
-    return null;
-}
 
 // Busca el cliente por teléfono; si no existe, lo crea. Devuelve su id.
 // Recibe la conexión para participar en la misma transacción.
-async function obtenerOCrearCliente(conexion, nombre, telefono) {
+async function obtenerOCrearCliente(conexion, nombre, telefono, direccion, referencia) {
     const [clienteExistente] = await conexion.query(
         'SELECT id_cliente FROM cliente WHERE telefono = ?',
         [telefono]
     );
 
     if (clienteExistente.length > 0) {
+        // Actualiza nombre y, si es delivery, su última dirección conocida
+        await conexion.query(
+            `UPDATE cliente SET nombre = ?,
+                    direccion = COALESCE(?, direccion), referencia = COALESCE(?, referencia)
+             WHERE id_cliente = ?`,
+            [nombre, direccion, direccion ? (referencia || '') : null, clienteExistente[0].id_cliente]
+        );
         return clienteExistente[0].id_cliente;
     }
 
     const [nuevoCliente] = await conexion.query(
         'INSERT INTO cliente (nombre, telefono, direccion, referencia) VALUES (?, ?, ?, ?)',
-        [nombre, telefono, 'Por definir', 'Por definir']
+        [nombre, telefono, direccion || 'Recojo en tienda', referencia || '']
     );
     return nuevoCliente.insertId;
 }
@@ -78,7 +65,7 @@ exports.crearPedido = async (req, res) => {
     } = req.body;
 
     // ---- VALIDACIONES (RF-24, RF-25) ----
-    const errorValidacion = validarPedido({ cliente_nombre, cliente_telefono, metodo_pago, productos });
+    const { datos: entrega, error: errorValidacion } = validarPedido(req.body);
     if (errorValidacion) {
         return res.status(400).json({ mensaje: errorValidacion });
     }
@@ -93,14 +80,18 @@ exports.crearPedido = async (req, res) => {
         await conexion.beginTransaction();
 
         // 1. Buscar o crear el cliente (por teléfono)
-        const id_cliente = await obtenerOCrearCliente(conexion, cliente_nombre, cliente_telefono);
+        const id_cliente = await obtenerOCrearCliente(
+            conexion, entrega.nombre, entrega.telefono, entrega.direccion, entrega.referencia
+        );
 
         // 2. Insertar el pedido
         const [resultPedido] = await conexion.query(
-            `INSERT INTO pedidos 
-             (codigo_pedido, id_cliente, cliente_nombre, cliente_telefono, total, metodo_pago, estado, fecha_pedido)
-             VALUES (?, ?, ?, ?, ?, ?, 'Pendiente', NOW())`,
-            [codigo_pedido, id_cliente, cliente_nombre, cliente_telefono, total, metodo_pago]
+            `INSERT INTO pedidos
+             (codigo_pedido, id_cliente, cliente_nombre, cliente_telefono, total, metodo_pago, estado,
+              fecha_pedido, modo_entrega, direccionEntrega, referencia_entrega, fecha_entrega)
+             VALUES (?, ?, ?, ?, ?, ?, 'Pendiente', NOW(), ?, ?, ?, ?)`,
+            [codigo_pedido, id_cliente, entrega.nombre, entrega.telefono, total, metodo_pago,
+             entrega.modoEntrega, entrega.direccion, entrega.referencia, entrega.fechaEntrega]
         );
 
         const id_pedido = resultPedido.insertId;
@@ -126,7 +117,9 @@ exports.crearPedido = async (req, res) => {
         res.status(201).json({
             mensaje: 'Pedido registrado correctamente',
             codigo_pedido,
-            monto_total: total
+            monto_total: total,
+            modo_entrega: entrega.modoEntrega,
+            fecha_entrega: entrega.fechaEntrega
         });
 
     } catch (error) {
@@ -146,7 +139,9 @@ exports.listarPedidos = async (req, res) => {
 
     let sql = `
         SELECT id_pedido AS id, codigo_pedido, cliente_nombre, cliente_telefono,
-               metodo_pago, estado, total AS monto_total, creado_en
+               metodo_pago, estado, total AS monto_total, creado_en,
+               modo_entrega, DATE_FORMAT(fecha_entrega, '%Y-%m-%d') AS fecha_entrega,
+               direccionEntrega AS direccion_entrega, referencia_entrega
         FROM pedidos
         WHERE 1=1
     `;
@@ -172,7 +167,9 @@ exports.obtenerPedido = async (req, res) => {
     try {
         const [pedido] = await pool.query(
             `SELECT id_pedido AS id, codigo_pedido, cliente_nombre, cliente_telefono,
-                    metodo_pago, estado, total AS monto_total, creado_en
+                    metodo_pago, estado, total AS monto_total, creado_en,
+               modo_entrega, DATE_FORMAT(fecha_entrega, '%Y-%m-%d') AS fecha_entrega,
+               direccionEntrega AS direccion_entrega, referencia_entrega
              FROM pedidos WHERE id_pedido = ?`,
             [req.params.id]
         );
@@ -181,16 +178,28 @@ exports.obtenerPedido = async (req, res) => {
             return res.status(404).json({ mensaje: 'Pedido no encontrado' });
         }
 
+        // Productos del pedido con su categoría (HU07: historial detallado)
         const [detalle] = await pool.query(
             `SELECT d.id_detalle AS id, d.cantidad, d.precio_unitario, d.subtotal,
-                    p.nombre AS producto_nombre 
+                    p.nombre AS producto_nombre, c.nombre AS categoria
              FROM detalle_pedidos d
              JOIN productos p ON p.id_producto = d.id_producto
-             WHERE d.id_pedido = ?`,
+             LEFT JOIN categorias c ON c.id_categoria = p.id_categoria
+             WHERE d.id_pedido = ?
+             ORDER BY d.id_detalle`,
             [req.params.id]
         );
 
-        res.json({ ...pedido[0], detalle });
+        res.json({
+            ...pedido[0],
+            monto_total: Number(pedido[0].monto_total),
+            detalle: detalle.map(d => ({
+                ...d,
+                cantidad: Number(d.cantidad),
+                precio_unitario: Number(d.precio_unitario),
+                subtotal: Number(d.subtotal)
+            }))
+        });
     } catch (error) {
         console.error('Error al obtener pedido:', error);
         res.status(500).json({ mensaje: 'Error al obtener pedido' });

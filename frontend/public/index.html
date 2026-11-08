@@ -195,6 +195,37 @@
                 <label for="cliente-telefono">Teléfono (WhatsApp) *</label>
                 <input type="tel" id="cliente-telefono" required placeholder="Ej: 987654321" autocomplete="tel" inputmode="numeric">
 
+                <fieldset class="grupo-entrega">
+                    <legend>Modo de entrega *</legend>
+                    <div class="opciones-entrega">
+                        <label class="opcion-entrega">
+                            <input type="radio" name="modo-entrega" value="Delivery" checked>
+                            <span><i class="fas fa-motorcycle"></i> Delivery</span>
+                        </label>
+                        <label class="opcion-entrega">
+                            <input type="radio" name="modo-entrega" value="Recojo en tienda">
+                            <span><i class="fas fa-store"></i> Recojo en tienda</span>
+                        </label>
+                    </div>
+                </fieldset>
+
+                <div id="campos-delivery">
+                    <label for="direccion-entrega">Dirección de entrega *</label>
+                    <input type="text" id="direccion-entrega" maxlength="150" placeholder="Ej: Av. Los Pasteles 123, Miraflores" autocomplete="street-address">
+
+                    <label for="referencia-entrega">Referencia (opcional)</label>
+                    <input type="text" id="referencia-entrega" maxlength="150" placeholder="Ej: Frente al parque, puerta verde">
+                </div>
+
+                <p id="aviso-recojo" class="aviso-recojo" hidden>
+                    <i class="fas fa-store"></i> Recogerás tu pedido en nuestra tienda.
+                    <span id="direccion-tienda"></span>
+                </p>
+
+                <label for="fecha-entrega" id="label-fecha-entrega">Fecha de entrega *</label>
+                <input type="date" id="fecha-entrega" required>
+                <small class="ayuda-fecha">Solo fechas a partir de mañana.</small>
+
                 <label for="metodo-pago">Método de pago *</label>
                 <select id="metodo-pago" required>
                     <option value="">-- Selecciona --</option>
