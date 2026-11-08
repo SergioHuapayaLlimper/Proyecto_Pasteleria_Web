@@ -29,9 +29,6 @@ yarn-error.log*
 # Datos locales de MySQL (cada integrante tiene los suyos)
 mysql-data/
 
-# Archivos generados por el asistente
-Claude outputs/
-
 # Respaldos locales de la BD (contienen datos reales)
 respaldo*.sql
 

@@ -6,6 +6,5 @@ db
 Jenkinsfile
 *.md
 mysql-data
-Claude outputs
 public
 .vercel
