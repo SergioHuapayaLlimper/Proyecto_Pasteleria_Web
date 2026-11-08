@@ -31,3 +31,6 @@ mysql-data/
 
 # Archivos generados por el asistente
 Claude outputs/
+
+# Respaldos locales de la BD (contienen datos reales)
+respaldo*.sql
