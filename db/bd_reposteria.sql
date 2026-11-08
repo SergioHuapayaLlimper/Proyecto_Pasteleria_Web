@@ -1,15 +1,42 @@
 USE bd_reposteria;
+SET NAMES utf8mb4;
 
+-- ---- ROLES DEL PERSONAL ----
+-- "permisos" es una lista JSON con las secciones del panel a las que accede el rol:
+-- dashboard, productos, pedidos, pedidos_estado, configuracion, personal
+CREATE TABLE IF NOT EXISTS roles (
+    id_rol         INT AUTO_INCREMENT PRIMARY KEY,
+    nombre         VARCHAR(40)  NOT NULL,
+    descripcion    VARCHAR(150) NULL,
+    permisos       JSON         NOT NULL,
+    es_sistema     TINYINT(1)   NOT NULL DEFAULT 0,  -- 1 = no se puede editar ni eliminar
+    creado_en      TIMESTAMP    NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    actualizado_en TIMESTAMP    NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    UNIQUE KEY uk_roles_nombre (nombre)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- Roles base (necesarios para que el sistema funcione)
+INSERT IGNORE INTO roles (id_rol, nombre, descripcion, permisos, es_sistema) VALUES
+    (1, 'Administrador', 'Acceso total al panel administrativo.',
+        JSON_ARRAY('dashboard', 'productos', 'pedidos', 'pedidos_estado', 'configuracion', 'personal'), 1),
+    (2, 'Contador', 'Consulta métricas y exporta el historial de pedidos (RF21).',
+        JSON_ARRAY('dashboard', 'pedidos'), 0);
+
+-- ---- PERSONAL DE LA PASTELERÍA ----
 CREATE TABLE IF NOT EXISTS usuario (
     id_usuario        INT AUTO_INCREMENT PRIMARY KEY,
     nombre            VARCHAR(50)  NOT NULL,
     email             VARCHAR(100) NOT NULL,
     password_hash     VARCHAR(255) NOT NULL,
-    telefono          VARCHAR(9)   NULL,
-    rol               VARCHAR(20)  NOT NULL DEFAULT 'Administrador',
+    telefono          VARCHAR(15)  NULL,
+    id_rol            INT          NOT NULL,
+    activo            TINYINT(1)   NOT NULL DEFAULT 1,
     intentos_fallidos INT          NOT NULL DEFAULT 0,
     bloqueado_hasta   DATETIME     NULL,
-    UNIQUE KEY uk_usuario_email (email)
+    creado_en         TIMESTAMP    NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    actualizado_en    TIMESTAMP    NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    UNIQUE KEY uk_usuario_email (email),
+    CONSTRAINT fk_usuario_rol FOREIGN KEY (id_rol) REFERENCES roles (id_rol)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 CREATE TABLE IF NOT EXISTS cliente (

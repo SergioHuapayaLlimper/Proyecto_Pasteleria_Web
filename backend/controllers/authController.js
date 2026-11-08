@@ -1,6 +1,6 @@
 // authController.js
 // -----------------------------------------------------
-// Login de administradores y contadores.
+// Login del personal (cualquier rol con al menos un permiso).
 // Adaptado a la base de datos bd_reposteria (tabla "usuario").
 // RF-01, RF-02, RF-03
 // -----------------------------------------------------
@@ -8,6 +8,7 @@
 const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
 const { pool } = require('../config/db');
+const { cargarUsuarioConRol } = require('../middleware/auth');
 
 // RF-03: bloqueo de cuenta tras varios intentos fallidos
 const MAX_INTENTOS_FALLIDOS = 5;
@@ -44,7 +45,7 @@ exports.login = async (req, res) => {
         // Buscar por email (usamos "usuario" en el frontend, pero es email)
         const [rows] = await pool.query(
             'SELECT * FROM usuario WHERE email = ?',
-            [usuario]
+            [String(usuario).trim().toLowerCase()]
         );
 
         if (rows.length === 0) {
@@ -73,22 +74,26 @@ exports.login = async (req, res) => {
             });
         }
 
+        // Cuenta desactivada por un administrador
+        if (!user.activo) {
+            return res.status(403).json({ mensaje: 'Tu cuenta está desactivada. Comunícate con el administrador.' });
+        }
+
         // Login exitoso: resetear intentos
         await pool.query(
             'UPDATE usuario SET intentos_fallidos = 0, bloqueado_hasta = NULL WHERE id_usuario = ?',
             [user.id_usuario]
         );
 
-        // RF-03: solo Administrador puede entrar al panel
-        if (user.rol !== 'Administrador') {
-            return res.status(403).json({ 
-                mensaje: 'Solo los administradores pueden acceder al panel.' 
-            });
+        // RF-03: el acceso al panel depende de los permisos del rol
+        const perfil = await cargarUsuarioConRol(user.id_usuario);
+        if (!perfil || !perfil.permisos.length) {
+            return res.status(403).json({ mensaje: 'Tu rol no tiene acceso al panel administrativo.' });
         }
 
-        // Generar token JWT
+        // Generar token JWT (los permisos se consultan en cada petición)
         const token = jwt.sign(
-            { id: user.id_usuario, email: user.email, rol: user.rol },
+            { id: user.id_usuario, email: user.email },
             process.env.JWT_SECRET,
             { expiresIn: '8h' }
         );
@@ -96,12 +101,19 @@ exports.login = async (req, res) => {
         res.json({
             mensaje: 'Inicio de sesion exitoso.',
             token,
-            rol: user.rol,
-            nombre: user.nombre
+            rol: perfil.rol,
+            nombre: perfil.nombre,
+            permisos: perfil.permisos
         });
 
     } catch (error) {
         console.error('Error en login:', error);
         res.status(500).json({ mensaje: 'Error del servidor' });
     }
+};
+
+// GET /api/auth/perfil -> datos y permisos actuales del usuario conectado
+exports.perfil = (req, res) => {
+    const { id, nombre, email, rol, esAdmin, permisos } = req.usuario;
+    res.json({ id, nombre, email, rol, esAdmin, permisos });
 };

@@ -10,11 +10,13 @@ const path = require('path');
 require('dotenv').config();
 
 const { probarConexion } = require('./config/db');
+const { ejecutarMigraciones } = require('./migrar');
 const authRoutes = require('./routes/authRoutes');
 const productosRoutes = require('./routes/productosRoutes');
 const configRoutes = require('./routes/configRoutes');
 const pedidosRoutes = require('./routes/pedidosRoutes');
 const metricasRoutes = require('./routes/metricasRoutes');
+const personalRoutes = require('./routes/personalRoutes');
 
 const app = express();
 
@@ -30,10 +32,24 @@ app.use('/api/productos', productosRoutes);
 app.use('/api/config', configRoutes); 
 app.use('/api/pedidos', pedidosRoutes);
 app.use('/api/metricas', metricasRoutes);
+app.use('/api/personal', personalRoutes);
 
 const PORT = process.env.PORT || 3000;
 
-app.listen(PORT, async () => {
-  console.log(`🚀 Servidor corriendo en http://localhost:${PORT}`);
-  await probarConexion();
-});
+// Aplica las migraciones pendientes (cambios de estructura sin borrar datos)
+// antes de empezar a atender peticiones.
+async function iniciar() {
+  try {
+    await ejecutarMigraciones();
+  } catch (error) {
+    console.error('❌ No se pudieron aplicar las migraciones:', error.message);
+    process.exit(1);
+  }
+
+  app.listen(PORT, async () => {
+    console.log(`🚀 Servidor corriendo en http://localhost:${PORT}`);
+    await probarConexion();
+  });
+}
+
+iniciar();

@@ -1,10 +1,11 @@
 const express = require('express');
 const router = express.Router();
 const metricasController = require('../controllers/metricasController');
-const { requiereAdminOContador } = require('../middleware/auth');
+const { requierePermiso } = require('../middleware/auth');
 
-router.get('/resumen', requiereAdminOContador, metricasController.resumenGeneral);
-router.get('/por-fecha', requiereAdminOContador, metricasController.metricasPorFecha);
-router.get('/exportar', requiereAdminOContador, metricasController.exportarMetricas);
+// RF-04, RF-05, RF-06: métricas y su exportación requieren el permiso "dashboard"
+router.get('/resumen', requierePermiso('dashboard'), metricasController.resumenGeneral);
+router.get('/por-fecha', requierePermiso('dashboard'), metricasController.metricasPorFecha);
+router.get('/exportar', requierePermiso('dashboard'), metricasController.exportarMetricas);
 
 module.exports = router;

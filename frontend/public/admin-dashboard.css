@@ -620,3 +620,268 @@ body.dashboard-body {
         gap: 15px;
     }
 }
+/* ============================================
+   PERSONAL Y ROLES
+   ============================================ */
+.nav-grupo {
+    display: block;
+    margin: 18px 15px 6px;
+    font-size: 0.7rem;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: rgba(255, 255, 255, 0.4);
+}
+
+.vacio {
+    text-align: center;
+    padding: 30px;
+    color: #888;
+}
+
+.celda-usuario {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+
+.celda-usuario small {
+    display: block;
+    color: #888;
+}
+
+.celda-usuario .tu {
+    display: inline;
+    color: var(--color-secundario);
+    font-weight: 500;
+}
+
+.avatar {
+    flex-shrink: 0;
+    width: 38px;
+    height: 38px;
+    border-radius: 50%;
+    display: grid;
+    place-items: center;
+    font-size: 0.85rem;
+    font-weight: 700;
+    color: var(--color-secundario);
+    background: #f3dcd6;
+}
+
+.badge-rol { background: #f3e8e4; color: var(--color-secundario); }
+.badge-rol.admin { background: var(--color-secundario); color: #fff; }
+.badge-bloqueado { background: #fff3cd; color: #856404; }
+.badge-sistema { background: #efe7e3; color: #6b5450; }
+
+.grid-roles {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+    gap: 20px;
+}
+
+.card-rol {
+    background: #fff;
+    border-radius: 14px;
+    padding: 22px;
+    border: 1px solid #eee3dd;
+    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.04);
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}
+
+.card-rol.sistema {
+    border-top: 4px solid var(--color-secundario);
+}
+
+.card-rol header {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    gap: 10px;
+}
+
+.card-rol h3 {
+    color: var(--color-oscuro);
+    font-size: 1.15rem;
+}
+
+.card-rol header small,
+.card-rol > p {
+    color: #888;
+    font-size: 0.88rem;
+}
+
+.card-rol .acciones {
+    display: flex;
+    gap: 6px;
+}
+
+.chips-permisos {
+    list-style: none;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+}
+
+.chips-permisos li {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 5px 10px;
+    border-radius: 999px;
+    background: #f8f1ed;
+    color: var(--color-secundario);
+    font-size: 0.8rem;
+    font-weight: 500;
+}
+
+/* Lista de permisos en el modal de rol */
+.lista-permisos {
+    display: grid;
+    gap: 8px;
+}
+
+.modal-content .permiso-opcion {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin: 0;
+    padding: 10px 12px;
+    border: 1.5px solid #eee3dd;
+    border-radius: 10px;
+    cursor: pointer;
+    transition: border-color 0.2s, background 0.2s;
+}
+
+.modal-content .permiso-opcion:hover {
+    background: #fdf8f5;
+}
+
+.modal-content .permiso-opcion:has(input:checked) {
+    border-color: var(--color-secundario);
+    background: #fbf3f0;
+}
+
+.modal-content .permiso-opcion input {
+    width: 18px;
+    height: 18px;
+    flex-shrink: 0;
+    accent-color: var(--color-secundario);
+}
+
+.permiso-icono {
+    width: 34px;
+    height: 34px;
+    border-radius: 9px;
+    display: grid;
+    place-items: center;
+    background: #f3dcd6;
+    color: var(--color-secundario);
+    flex-shrink: 0;
+}
+
+.permiso-texto strong {
+    display: block;
+    font-size: 0.92rem;
+}
+
+.permiso-texto small {
+    color: #888;
+    font-size: 0.8rem;
+}
+
+/* Contraseña con botón de ver */
+.campo-password {
+    position: relative;
+}
+
+.campo-password input {
+    padding-right: 44px;
+}
+
+.btn-ver {
+    position: absolute;
+    right: 6px;
+    top: 50%;
+    transform: translateY(-50%);
+    width: 32px;
+    height: 32px;
+    border: none;
+    border-radius: 8px;
+    background: transparent;
+    color: #999;
+    cursor: pointer;
+}
+
+.btn-ver:hover {
+    background: #f5eeea;
+    color: var(--color-secundario);
+}
+
+/* Interruptor (switch) */
+.modal-content .switch-fila {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-top: 16px;
+    cursor: pointer;
+    font-weight: 500;
+}
+
+.modal-content .switch-fila input {
+    position: absolute;
+    opacity: 0;
+    width: 1px;
+    height: 1px;
+}
+
+.switch {
+    position: relative;
+    width: 42px;
+    height: 24px;
+    flex-shrink: 0;
+    border-radius: 999px;
+    background: #d9cdc8;
+    transition: background 0.2s;
+}
+
+.switch::after {
+    content: '';
+    position: absolute;
+    top: 3px;
+    left: 3px;
+    width: 18px;
+    height: 18px;
+    border-radius: 50%;
+    background: #fff;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.2);
+    transition: transform 0.2s;
+}
+
+.switch-fila input:checked + .switch {
+    background: var(--color-secundario);
+}
+
+.switch-fila input:checked + .switch::after {
+    transform: translateX(18px);
+}
+
+.switch-fila input:focus-visible + .switch {
+    outline: 3px solid var(--color-primario);
+    outline-offset: 2px;
+}
+
+.switch-fila input:disabled + .switch {
+    opacity: 0.5;
+}
+
+.modal-content select:disabled {
+    background: #f5f2f0;
+    color: #888;
+}
+
+#usr-error,
+#rol-error {
+    margin: 16px 0 0;
+}

@@ -22,17 +22,24 @@
         </div>
 
         <nav class="sidebar-nav">
-            <button class="nav-item activo" data-seccion="dashboard">
+            <button class="nav-item activo" data-seccion="dashboard" data-permiso="dashboard">
                 <i class="fas fa-chart-line"></i> Dashboard
             </button>
-            <button class="nav-item" data-seccion="productos">
+            <button class="nav-item" data-seccion="productos" data-permiso="productos">
                 <i class="fas fa-box"></i> Productos
             </button>
-            <button class="nav-item" data-seccion="pedidos">
+            <button class="nav-item" data-seccion="pedidos" data-permiso="pedidos">
                 <i class="fas fa-shopping-bag"></i> Pedidos
             </button>
-            <button class="nav-item" data-seccion="configuracion">
+            <button class="nav-item" data-seccion="configuracion" data-permiso="configuracion">
                 <i class="fas fa-cog"></i> Configuración
+            </button>
+            <span class="nav-grupo" data-permiso="personal">Organización</span>
+            <button class="nav-item" data-seccion="personal" data-permiso="personal">
+                <i class="fas fa-users"></i> Personal
+            </button>
+            <button class="nav-item" data-seccion="roles" data-permiso="personal">
+                <i class="fas fa-user-tag"></i> Roles
             </button>
         </nav>
 
@@ -41,7 +48,7 @@
                 <i class="fas fa-user-circle"></i>
                 <div>
                     <p id="nombre-usuario">Administrador</p>
-                    <small>Administrador</small>
+                    <small id="rol-usuario">Administrador</small>
                 </div>
             </div>
             <button id="btn-logout" class="btn-logout">
@@ -271,7 +278,135 @@
             </form>
         </section>
 
+        <!-- SECCIÓN PERSONAL -->
+        <section id="seccion-personal" class="seccion">
+            <header class="seccion-header">
+                <div>
+                    <h1><i class="fas fa-users"></i> Personal</h1>
+                    <p>Cuentas del personal de la pastelería con acceso al panel.</p>
+                </div>
+                <button id="btn-nuevo-usuario" class="btn-primary">
+                    <i class="fas fa-user-plus"></i> Nuevo usuario
+                </button>
+            </header>
+
+            <div class="tabla-container">
+                <table class="tabla">
+                    <thead>
+                        <tr>
+                            <th>Usuario</th>
+                            <th>Teléfono</th>
+                            <th>Rol</th>
+                            <th>Estado</th>
+                            <th>Creado</th>
+                            <th>Acciones</th>
+                        </tr>
+                    </thead>
+                    <tbody id="tabla-usuarios">
+                        <!-- Se llena con JS -->
+                    </tbody>
+                </table>
+            </div>
+        </section>
+
+        <!-- SECCIÓN ROLES -->
+        <section id="seccion-roles" class="seccion">
+            <header class="seccion-header">
+                <div>
+                    <h1><i class="fas fa-user-tag"></i> Roles</h1>
+                    <p>Define qué secciones del panel puede usar cada tipo de usuario.</p>
+                </div>
+                <button id="btn-nuevo-rol" class="btn-primary">
+                    <i class="fas fa-plus"></i> Nuevo rol
+                </button>
+            </header>
+
+            <div id="lista-roles" class="grid-roles">
+                <!-- Se llena con JS -->
+            </div>
+        </section>
+
     </main>
+
+    <!-- MODAL USUARIO (crear/editar) -->
+    <div id="modal-usuario" class="modal">
+        <div class="modal-content">
+            <span class="close" id="cerrar-modal-usuario">&times;</span>
+            <h2 id="titulo-modal-usuario">Nuevo usuario</h2>
+            <form id="form-usuario" novalidate>
+                <input type="hidden" id="usr-id">
+
+                <label for="usr-nombre">Nombre completo *</label>
+                <input type="text" id="usr-nombre" maxlength="50" required placeholder="Ej: María López">
+
+                <label for="usr-email">Correo electrónico *</label>
+                <input type="email" id="usr-email" maxlength="100" required placeholder="Ej: maria@jorby.com" autocomplete="off">
+
+                <label for="usr-telefono">Teléfono</label>
+                <input type="tel" id="usr-telefono" maxlength="15" placeholder="Ej: 987654321" inputmode="numeric">
+
+                <label for="usr-rol">Rol *</label>
+                <select id="usr-rol" required></select>
+                <small class="ayuda-campo" id="usr-rol-ayuda"></small>
+
+                <label for="usr-password" id="usr-password-label">Contraseña *</label>
+                <div class="campo-password">
+                    <input type="password" id="usr-password" autocomplete="new-password" placeholder="Mínimo 8 caracteres, letras y números">
+                    <button type="button" class="btn-ver" data-objetivo="usr-password" aria-label="Mostrar contraseña"><i class="fas fa-eye"></i></button>
+                </div>
+                <small class="ayuda-campo" id="usr-password-ayuda">Mínimo 8 caracteres, con al menos una letra y un número.</small>
+
+                <label for="usr-password2">Confirmar contraseña</label>
+                <input type="password" id="usr-password2" autocomplete="new-password">
+
+                <label class="switch-fila">
+                    <input type="checkbox" id="usr-activo" checked>
+                    <span class="switch"></span>
+                    <span>Cuenta activa (puede iniciar sesión)</span>
+                </label>
+
+                <label class="switch-fila" id="fila-desbloquear" style="display:none;">
+                    <input type="checkbox" id="usr-desbloquear">
+                    <span class="switch"></span>
+                    <span>Desbloquear cuenta (reiniciar intentos fallidos)</span>
+                </label>
+
+                <div id="usr-error" class="cfg-mensaje error" style="display:none;"></div>
+
+                <button type="submit" class="btn-primary" id="btn-guardar-usuario">
+                    <i class="fas fa-save"></i> Guardar
+                </button>
+            </form>
+        </div>
+    </div>
+
+    <!-- MODAL ROL (crear/editar) -->
+    <div id="modal-rol" class="modal">
+        <div class="modal-content">
+            <span class="close" id="cerrar-modal-rol">&times;</span>
+            <h2 id="titulo-modal-rol">Nuevo rol</h2>
+            <form id="form-rol" novalidate>
+                <input type="hidden" id="rol-id">
+
+                <label for="rol-nombre">Nombre del rol *</label>
+                <input type="text" id="rol-nombre" maxlength="40" required placeholder="Ej: Repostero, Cajero, Repartidor">
+
+                <label for="rol-descripcion">Descripción</label>
+                <textarea id="rol-descripcion" rows="2" maxlength="150" placeholder="¿Qué hace este rol?"></textarea>
+
+                <label>Permisos *</label>
+                <div id="rol-permisos" class="lista-permisos">
+                    <!-- Checkboxes generados con JS -->
+                </div>
+
+                <div id="rol-error" class="cfg-mensaje error" style="display:none;"></div>
+
+                <button type="submit" class="btn-primary" id="btn-guardar-rol">
+                    <i class="fas fa-save"></i> Guardar
+                </button>
+            </form>
+        </div>
+    </div>
 
     <!-- MODAL PRODUCTO (crear/editar) -->
     <div id="modal-producto" class="modal">
@@ -311,5 +446,6 @@
     <script src="dialogos.js"></script>
     <script src="exportarExcel.js"></script>
     <script src="admin-dashboard.js"></script>
+    <script src="admin-personal.js"></script>
 </body>
 </html>

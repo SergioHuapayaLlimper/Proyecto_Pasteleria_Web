@@ -26,3 +26,8 @@ yarn-error.log*
 *.bak
 *.swp
 
+# Datos locales de MySQL (cada integrante tiene los suyos)
+mysql-data/
+
+# Archivos generados por el asistente
+Claude outputs/

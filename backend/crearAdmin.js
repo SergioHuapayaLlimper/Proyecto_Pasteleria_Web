@@ -15,7 +15,7 @@ async function gestionarAdmin() {
         nombre: 'Sergio Huapaya',
         email: 'sergio.huapaya@jabys.com',
         telefono: '987654321',
-        rol: 'Administrador'
+        id_rol: 1 // rol "Administrador" (del sistema)
     };
 
     const passwordPlano = 'Admin1234';
@@ -35,17 +35,17 @@ async function gestionarAdmin() {
             // Actualizar
             await pool.query(
                 `UPDATE usuario 
-                 SET password_hash = ?, intentos_fallidos = 0, bloqueado_hasta = NULL, rol = ?
+                 SET password_hash = ?, intentos_fallidos = 0, bloqueado_hasta = NULL, id_rol = ?, activo = 1
                  WHERE email = ?`,
-                [passwordHash, adminData.rol, adminData.email]
+                [passwordHash, adminData.id_rol, adminData.email]
             );
             console.log('✅ Usuario administrador actualizado correctamente.');
         } else {
             // Crear nuevo
             await pool.query(
-                `INSERT INTO usuario (nombre, email, password_hash, telefono, rol)
+                `INSERT INTO usuario (nombre, email, password_hash, telefono, id_rol)
                  VALUES (?, ?, ?, ?, ?)`,
-                [adminData.nombre, adminData.email, passwordHash, adminData.telefono, adminData.rol]
+                [adminData.nombre, adminData.email, passwordHash, adminData.telefono, adminData.id_rol]
             );
             console.log('✅ Usuario administrador creado correctamente.');
         }
@@ -53,12 +53,13 @@ async function gestionarAdmin() {
         console.log('   Nombre:', adminData.nombre);
         console.log('   Email:', adminData.email);
         console.log('   Contraseña:', passwordPlano);
-        console.log('   Rol:', adminData.rol);
+        console.log('   Rol: Administrador');
 
         // Mostrar todos los usuarios
         console.log('\n📋 Usuarios en la base de datos:');
         const [usuarios] = await pool.query(
-            'SELECT id_usuario, nombre, email, rol FROM usuario'
+            `SELECT u.id_usuario, u.nombre, u.email, r.nombre AS rol
+             FROM usuario u JOIN roles r ON r.id_rol = u.id_rol`
         );
         usuarios.forEach(u => {
             console.log(`   - [${u.id_usuario}] ${u.email} (${u.rol}) - ${u.nombre}`);

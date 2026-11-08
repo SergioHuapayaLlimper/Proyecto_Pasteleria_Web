@@ -16,11 +16,22 @@ if (!token) {
     window.location.href = 'admin-login.html';
 }
 
-const usuarioAdmin = JSON.parse(localStorage.getItem('usuario_admin') || '{}');
+let usuarioAdmin = JSON.parse(localStorage.getItem('usuario_admin') || '{}');
+
+// ---- PERMISOS DEL USUARIO CONECTADO ----
+function tienePermiso(permiso) {
+    return Array.isArray(usuarioAdmin.permisos) && usuarioAdmin.permisos.includes(permiso);
+}
+
+function cerrarSesionLocal() {
+    localStorage.removeItem('token_admin');
+    localStorage.removeItem('usuario_admin');
+    window.location.href = 'admin-login.html';
+}
 
 // Helper para peticiones autenticadas
 async function fetchAuth(url, opciones = {}) {
-    return fetch(url, {
+    const res = await fetch(url, {
         ...opciones,
         headers: {
             'Content-Type': 'application/json',
@@ -28,6 +39,49 @@ async function fetchAuth(url, opciones = {}) {
             ...(opciones.headers || {})
         }
     });
+    // Sesión expirada o cuenta desactivada: volver al login
+    if (res.status === 401) {
+        cerrarSesionLocal();
+        throw new Error('Sesión expirada');
+    }
+    return res;
+}
+
+// Escapa texto antes de insertarlo como HTML
+function escaparHTML(valor) {
+    return String(valor ?? '')
+        .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;').replace(/'/g, '&#39;');
+}
+
+// Obtiene el perfil actualizado (rol y permisos) desde el servidor
+async function actualizarPerfil() {
+    try {
+        const res = await fetchAuth('/api/auth/perfil');
+        if (res.ok) {
+            const perfil = await res.json();
+            usuarioAdmin = { nombre: perfil.nombre, rol: perfil.rol, permisos: perfil.permisos, id: perfil.id };
+            localStorage.setItem('usuario_admin', JSON.stringify(usuarioAdmin));
+        }
+    } catch (error) {
+        console.warn('No se pudo actualizar el perfil:', error);
+    }
+}
+
+// Oculta del menú las secciones a las que el rol no tiene acceso
+function aplicarPermisosUI() {
+    document.querySelectorAll('[data-permiso]').forEach(el => {
+        el.style.display = tienePermiso(el.dataset.permiso) ? '' : 'none';
+    });
+    document.getElementById('rol-usuario').textContent = usuarioAdmin.rol || '';
+    document.getElementById('nombre-usuario').textContent = usuarioAdmin.nombre || 'Usuario';
+}
+
+// Primera sección del menú que el usuario puede ver
+function primeraSeccionPermitida() {
+    const item = [...document.querySelectorAll('.nav-item')]
+        .find(b => tienePermiso(b.dataset.permiso));
+    return item ? item.dataset.seccion : null;
 }
 
 // ---- REFERENCIAS GLOBALES ----
@@ -35,9 +89,10 @@ let graficoEstados = null;
 let graficoConsultas = null;
 
 // ---- INICIALIZAR ----
-document.addEventListener('DOMContentLoaded', () => {
-    // Mostrar nombre del usuario
-    document.getElementById('nombre-usuario').textContent = usuarioAdmin.nombre || 'Administrador';
+document.addEventListener('DOMContentLoaded', async () => {
+    // Rol y permisos actuales (pueden haber cambiado desde el último login)
+    await actualizarPerfil();
+    aplicarPermisosUI();
 
     // Navegación entre secciones
     document.querySelectorAll('.nav-item').forEach(btn => {
@@ -55,16 +110,21 @@ document.addEventListener('DOMContentLoaded', () => {
             textoConfirmar: 'Cerrar sesión',
             icono: 'fa-right-from-bracket'
         });
-        if (ok) {
-            localStorage.removeItem('token_admin');
-            localStorage.removeItem('usuario_admin');
-            window.location.href = 'admin-login.html';
-        }
+        if (ok) cerrarSesionLocal();
     });
 
-    // Cargar dashboard por defecto
-    cargarDashboard();
-    cargarConfiguracion();
+    // Abrir la primera sección permitida para este rol
+    const inicial = primeraSeccionPermitida();
+    if (inicial) {
+        cambiarSeccion(inicial);
+    } else {
+        await Dialogo.alerta({
+            titulo: 'Sin acceso',
+            mensaje: 'Tu rol no tiene secciones asignadas en el panel. Comunícate con el administrador.',
+            tipo: 'aviso'
+        });
+        cerrarSesionLocal();
+    }
 
     // Eventos de filtros
     document.getElementById('btn-filtrar').addEventListener('click', cargarDashboard);
@@ -87,10 +147,15 @@ const CARGADORES_SECCION = {
     dashboard: cargarDashboard,
     productos: cargarProductos,
     pedidos: cargarPedidos,
-    configuracion: cargarConfiguracion
+    configuracion: cargarConfiguracion,
+    personal: () => cargarUsuarios(),   // definidas en admin-personal.js
+    roles: () => cargarRoles()
 };
 
 function cambiarSeccion(seccion) {
+    const item = document.querySelector(`.nav-item[data-seccion="${seccion}"]`);
+    if (!item || !tienePermiso(item.dataset.permiso)) return;
+
     document.querySelectorAll('.nav-item').forEach(b => b.classList.remove('activo'));
     document.querySelectorAll('.seccion').forEach(s => s.classList.remove('activa'));
 
@@ -361,7 +426,7 @@ async function cargarPedidos() {
                 <td><span class="badge badge-${p.estado.toLowerCase()}">${p.estado}</span></td>
                 <td>${new Date(p.creado_en).toLocaleDateString('es-PE')}</td>
                 <td>
-                    ${p.estado === 'Pendiente' ? `
+                    ${p.estado === 'Pendiente' && tienePermiso('pedidos_estado') ? `
                         <button class="btn-sm btn-completar" onclick="cambiarEstadoPedido(${p.id}, 'Completado')">
                             <i class="fas fa-check"></i>
                         </button>

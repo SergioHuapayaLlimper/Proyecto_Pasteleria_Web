@@ -5,3 +5,5 @@ backend/.env
 db
 Jenkinsfile
 *.md
+mysql-data
+Claude outputs

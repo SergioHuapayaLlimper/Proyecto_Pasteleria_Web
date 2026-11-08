@@ -93,18 +93,12 @@ document.addEventListener('DOMContentLoaded', () => {
                 return;
             }
 
-            // Verificar que el rol sea Administrador
-            if (data.rol !== 'Administrador') {
-                mostrarError('Solo los administradores pueden acceder al panel.');
-                restaurarBotonLogin();
-                return;
-            }
-
             // Guardar token y datos del usuario
             localStorage.setItem('token_admin', data.token);
             localStorage.setItem('usuario_admin', JSON.stringify({
                 nombre: data.nombre,
-                rol: data.rol
+                rol: data.rol,
+                permisos: data.permisos || []
             }));
 
             // Redirigir al panel

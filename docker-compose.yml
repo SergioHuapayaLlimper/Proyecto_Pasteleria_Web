@@ -6,7 +6,11 @@ services:
       MYSQL_ROOT_PASSWORD: ${DB_PASSWORD}
       MYSQL_DATABASE: ${DB_NAME}
     volumes:
-      - mysql_data:/var/lib/mysql
+      # Datos de MySQL. Por defecto en la carpeta ./mysql-data del proyecto:
+      # sobreviven a "docker compose down -v" y a reinicios.
+      # Jenkins usa MYSQL_DATA_DIR=mysql_data (volumen temporal) para probar con BD limpia.
+      - ${MYSQL_DATA_DIR:-./mysql-data}:/var/lib/mysql
+      # Scripts iniciales: solo se ejecutan cuando la BD está vacía (primera vez)
       - ./db:/docker-entrypoint-initdb.d
     healthcheck:
       test: ["CMD", "mysqladmin", "ping", "-h", "127.0.0.1", "-p${DB_PASSWORD}"]

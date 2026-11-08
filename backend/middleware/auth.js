@@ -1,44 +1,80 @@
 // middleware/auth.js
 // -----------------------------------------------------
-// Protege rutas que solo debe usar el panel administrativo.
-// RF-03: redirigir al panel solo si el rol es Administrador.
-// RF-21: reportes de pedidos solo para Contador y Administrador.
+// Protege las rutas del panel administrativo.
+// - verificarToken: valida el JWT y carga el usuario con su rol y permisos
+//   desde la BD (así, si se desactiva una cuenta o se cambia su rol,
+//   el cambio aplica de inmediato sin esperar a que expire el token).
+// - requierePermiso: deja pasar solo si el rol tiene alguno de los permisos.
+// RF-03, RF-21
 // -----------------------------------------------------
 
 const jwt = require('jsonwebtoken');
+const { pool } = require('../config/db');
+const { CLAVES_PERMISOS } = require('../utils/validarPersonal');
 require('dotenv').config();
 
-// Verifica que exista un token valido en la cabecera Authorization.
+// Obtiene el usuario activo con su rol. Devuelve null si no existe o está inactivo.
+async function cargarUsuarioConRol(idUsuario) {
+    const [rows] = await pool.query(
+        `SELECT u.id_usuario, u.nombre, u.email, u.activo,
+                r.id_rol, r.nombre AS rol, r.permisos, r.es_sistema
+         FROM usuario u
+         JOIN roles r ON r.id_rol = u.id_rol
+         WHERE u.id_usuario = ?`,
+        [idUsuario]
+    );
+    const u = rows[0];
+    if (!u || !u.activo) return null;
+
+    let permisos = typeof u.permisos === 'string' ? JSON.parse(u.permisos) : (u.permisos || []);
+    if (u.es_sistema) permisos = [...CLAVES_PERMISOS]; // el rol Administrador siempre tiene todo
+
+    return {
+        id: u.id_usuario,
+        nombre: u.nombre,
+        email: u.email,
+        idRol: u.id_rol,
+        rol: u.rol,
+        esAdmin: Boolean(u.es_sistema),
+        permisos
+    };
+}
+
+// Verifica que exista un token válido y que la cuenta siga activa.
 function verificarToken(req, res, next) {
-  const authHeader = req.headers['authorization'];
-  const token = authHeader && authHeader.split(' ')[1]; // formato: "Bearer <token>"
+    const authHeader = req.headers['authorization'];
+    const token = authHeader && authHeader.split(' ')[1]; // formato: "Bearer <token>"
 
-  if (!token) {
-    return res.status(401).json({ mensaje: 'No se envio un token de acceso.' });
-  }
-
-  jwt.verify(token, process.env.JWT_SECRET, (error, usuario) => {
-    if (error) {
-      return res.status(403).json({ mensaje: 'Token invalido o expirado.' });
+    if (!token) {
+        return res.status(401).json({ mensaje: 'No se envió un token de acceso.' });
     }
-    req.usuario = usuario; // { id, usuario, rol }
-    next();
-  });
+
+    jwt.verify(token, process.env.JWT_SECRET, async (error, payload) => {
+        if (error) {
+            return res.status(401).json({ mensaje: 'Tu sesión expiró. Vuelve a iniciar sesión.' });
+        }
+        try {
+            const usuario = await cargarUsuarioConRol(payload.id);
+            if (!usuario) {
+                return res.status(401).json({ mensaje: 'Tu cuenta fue desactivada o eliminada.' });
+            }
+            req.usuario = usuario;
+            next();
+        } catch (err) {
+            console.error('Error al verificar usuario:', err);
+            res.status(500).json({ mensaje: 'Error del servidor' });
+        }
+    });
 }
 
-// Genera un middleware que solo deja pasar a ciertos roles.
-// Uso: soloRoles('Administrador') o soloRoles('Administrador', 'Contador')
-function soloRoles(...rolesPermitidos) {
-  return (req, res, next) => {
-    if (!req.usuario || !rolesPermitidos.includes(req.usuario.rol)) {
-      return res.status(403).json({ mensaje: 'No tienes permiso para acceder a este recurso.' });
-    }
-    next();
-  };
+// Genera un middleware que exige al menos uno de los permisos indicados.
+function requierePermiso(...permisos) {
+    return [verificarToken, (req, res, next) => {
+        if (!permisos.some(p => req.usuario.permisos.includes(p))) {
+            return res.status(403).json({ mensaje: 'Tu rol no tiene permiso para realizar esta acción.' });
+        }
+        next();
+    }];
 }
 
-// Combinaciones de uso frecuente en las rutas protegidas.
-const requiereAdmin = [verificarToken, soloRoles('Administrador')];
-const requiereAdminOContador = [verificarToken, soloRoles('Administrador', 'Contador')];
-
-module.exports = { verificarToken, soloRoles, requiereAdmin, requiereAdminOContador };
+module.exports = { verificarToken, requierePermiso, cargarUsuarioConRol };

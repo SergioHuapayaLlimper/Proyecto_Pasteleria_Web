@@ -18,6 +18,9 @@ pipeline {
         // Proyecto y puerto distintos a los de tu uso manual para no chocar
         COMPOSE_PROJECT_NAME = 'pasteleria-ci'
         APP_PORT = '3001'
+        // Volumen temporal de Docker (no la carpeta local): se borra con "down -v"
+        // para que cada ejecución pruebe con una base de datos limpia
+        MYSQL_DATA_DIR = 'mysql_data'
     }
 
     stages {
@@ -41,6 +44,7 @@ pipeline {
                 // El pipeline usa su propio puerto sin importar lo que diga el .env
                 bat 'echo.>> .env'
                 bat 'echo APP_PORT=%APP_PORT%>> .env'
+                bat 'echo MYSQL_DATA_DIR=%MYSQL_DATA_DIR%>> .env'
             }
         }
 
