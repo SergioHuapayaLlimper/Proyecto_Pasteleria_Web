@@ -17,6 +17,7 @@ const configRoutes = require('./routes/configRoutes');
 const pedidosRoutes = require('./routes/pedidosRoutes');
 const metricasRoutes = require('./routes/metricasRoutes');
 const personalRoutes = require('./routes/personalRoutes');
+const categoriasRoutes = require('./routes/categoriasRoutes');
 
 const app = express();
 
@@ -33,6 +34,7 @@ app.use('/api/config', configRoutes);
 app.use('/api/pedidos', pedidosRoutes);
 app.use('/api/metricas', metricasRoutes);
 app.use('/api/personal', personalRoutes);
+app.use('/api/categorias', categoriasRoutes);
 
 const PORT = process.env.PORT || 3000;
 

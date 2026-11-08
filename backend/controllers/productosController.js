@@ -7,22 +7,32 @@
 
 const { pool } = require('../config/db');
 
-// Busca una categoría por nombre y, si no existe, la crea. Devuelve su id.
-async function obtenerOCrearCategoria(nombre) {
-    const [cat] = await pool.query(
-        'SELECT id_categoria FROM categorias WHERE nombre = ?',
-        [nombre]
-    );
+const { validarProducto } = require('../utils/validarCatalogo');
 
-    if (cat.length > 0) {
-        return cat[0].id_categoria;
+// Acepta id_categoria (combo del panel). Por compatibilidad también acepta
+// "categoria" con el nombre, pero SOLO si esa categoría ya está registrada.
+async function resolverIdCategoria(body) {
+    if (body.id_categoria) return Number(body.id_categoria);
+    if (body.categoria) {
+        const [[cat]] = await pool.query(
+            'SELECT id_categoria FROM categorias WHERE nombre = ?', [String(body.categoria).trim()]
+        );
+        return cat ? cat.id_categoria : null;
     }
+    return null;
+}
 
-    const [nuevaCat] = await pool.query(
-        'INSERT INTO categorias (nombre) VALUES (?)',
-        [nombre]
+// Verifica que la categoría exista y esté activa.
+// Al editar, se permite conservar la categoría actual aunque esté inactiva.
+async function verificarCategoria(idCategoria, idCategoriaActual = null) {
+    const [[cat]] = await pool.query(
+        'SELECT activo FROM categorias WHERE id_categoria = ?', [idCategoria]
     );
-    return nuevaCat.insertId;
+    if (!cat) return 'La categoría seleccionada no existe.';
+    if (!cat.activo && idCategoria !== idCategoriaActual) {
+        return 'La categoría seleccionada está desactivada.';
+    }
+    return null;
 }
 
 // GET /api/productos -> Lista todos los productos activos (público)
@@ -82,23 +92,19 @@ exports.obtenerProducto = async (req, res) => {
     }
 };
 
-// POST /api/productos -> Crear un producto (solo admin) - RF-07
+// POST /api/productos -> Crear un producto - RF-07
 exports.crearProducto = async (req, res) => {
-    const { nombre, descripcion, precio, categoria, imagen_url } = req.body;
-
-    if (!nombre || !precio || !categoria) {
-        return res.status(400).json({ mensaje: 'Nombre, precio y categoría son obligatorios' });
-    }
-
     try {
-        // Buscar o crear la categoría
-        const id_categoria = await obtenerOCrearCategoria(categoria);
+        const { datos, errores } = validarProducto({ ...req.body, id_categoria: await resolverIdCategoria(req.body) });
+        if (errores.length) return res.status(400).json({ mensaje: errores.join(' '), errores });
 
-        // Insertar el producto
+        const errorCategoria = await verificarCategoria(datos.id_categoria);
+        if (errorCategoria) return res.status(400).json({ mensaje: errorCategoria });
+
         const [result] = await pool.query(
             `INSERT INTO productos (nombre, descripcion, precio, id_categoria, imagen_url, estado)
-             VALUES (?, ?, ?, ?, ?, 'activo')`,
-            [nombre, descripcion || '', precio, id_categoria, imagen_url || '']
+             VALUES (?, ?, ?, ?, ?, ?)`,
+            [datos.nombre, datos.descripcion, datos.precio, datos.id_categoria, datos.imagen_url, datos.estado]
         );
 
         res.status(201).json({
@@ -111,26 +117,28 @@ exports.crearProducto = async (req, res) => {
     }
 };
 
-// PUT /api/productos/:id -> Editar un producto (solo admin) - RF-08
+// PUT /api/productos/:id -> Editar un producto - RF-08
 exports.editarProducto = async (req, res) => {
-    const { nombre, descripcion, precio, categoria, imagen_url, estado } = req.body;
     const { id } = req.params;
 
     try {
-        // Buscar o crear la categoría
-        const id_categoria = await obtenerOCrearCategoria(categoria);
+        const [[actual]] = await pool.query(
+            'SELECT id_categoria FROM productos WHERE id_producto = ?', [id]
+        );
+        if (!actual) return res.status(404).json({ mensaje: 'Producto no encontrado' });
 
-        // Actualizar el producto
-        const [result] = await pool.query(
+        const { datos, errores } = validarProducto({ ...req.body, id_categoria: await resolverIdCategoria(req.body) });
+        if (errores.length) return res.status(400).json({ mensaje: errores.join(' '), errores });
+
+        const errorCategoria = await verificarCategoria(datos.id_categoria, actual.id_categoria);
+        if (errorCategoria) return res.status(400).json({ mensaje: errorCategoria });
+
+        await pool.query(
             `UPDATE productos
              SET nombre = ?, descripcion = ?, precio = ?, id_categoria = ?, imagen_url = ?, estado = ?
              WHERE id_producto = ?`,
-            [nombre, descripcion, precio, id_categoria, imagen_url, estado || 'activo', id]
+            [datos.nombre, datos.descripcion, datos.precio, datos.id_categoria, datos.imagen_url, datos.estado, id]
         );
-
-        if (result.affectedRows === 0) {
-            return res.status(404).json({ mensaje: 'Producto no encontrado' });
-        }
 
         res.json({ mensaje: 'Producto actualizado correctamente' });
     } catch (error) {

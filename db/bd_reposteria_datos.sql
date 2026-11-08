@@ -12,10 +12,10 @@ USE bd_reposteria;
 SET NAMES utf8mb4;
 
 -- ---- CATEGORÍAS ----
-INSERT IGNORE INTO categorias (id_categoria, nombre) VALUES
-    (1, 'Tortas'),
-    (2, 'Postres'),
-    (3, 'Bocaditos');
+INSERT IGNORE INTO categorias (id_categoria, nombre, descripcion) VALUES
+    (1, 'Tortas', 'Tortas enteras para celebraciones.'),
+    (2, 'Postres', 'Postres individuales y para compartir.'),
+    (3, 'Bocaditos', 'Dulces pequeños por docena o unidad.');
 
 -- ---- PRODUCTOS ----
 INSERT IGNORE INTO productos (id_producto, id_categoria, nombre, descripcion, precio, imagen_url, estado) VALUES

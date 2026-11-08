@@ -47,9 +47,15 @@ CREATE TABLE IF NOT EXISTS cliente (
     referencia VARCHAR(150) NOT NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
+-- ---- CATEGORÍAS DE PRODUCTOS (gestionadas desde el panel) ----
 CREATE TABLE IF NOT EXISTS categorias (
-    id_categoria INT AUTO_INCREMENT PRIMARY KEY,
-    nombre       VARCHAR(50) NOT NULL
+    id_categoria   INT AUTO_INCREMENT PRIMARY KEY,
+    nombre         VARCHAR(50)  NOT NULL,
+    descripcion    VARCHAR(150) NULL,
+    activo         TINYINT(1)   NOT NULL DEFAULT 1,  -- 0 = no aparece al registrar productos
+    creado_en      TIMESTAMP    NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    actualizado_en TIMESTAMP    NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    UNIQUE KEY uk_categorias_nombre (nombre)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 CREATE TABLE IF NOT EXISTS productos (

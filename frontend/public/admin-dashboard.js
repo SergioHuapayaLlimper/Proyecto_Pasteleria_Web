@@ -165,6 +165,7 @@ document.addEventListener('DOMContentLoaded', async () => {
 const CARGADORES_SECCION = {
     dashboard: cargarDashboard,
     productos: cargarProductos,
+    categorias: () => cargarCategorias(),   // definida en admin-categorias.js
     pedidos: cargarPedidos,
     configuracion: cargarConfiguracion,
     personal: () => cargarUsuarios(),   // definidas en admin-personal.js
@@ -361,7 +362,7 @@ async function cargarProductos() {
             <tr>
                 <td><img src="${p.imagen_url || 'https://via.placeholder.com/50'}" alt="${p.nombre}"></td>
                 <td><strong>${p.nombre}</strong><br><small>${p.descripcion || ''}</small></td>
-                <td>${p.categoria}</td>
+                <td><span class="badge badge-rol">${escaparHTML(p.categoria)}</span></td>
                 <td>S/ ${parseFloat(p.precio).toFixed(2)}</td>
                 <td><span class="badge badge-${p.estado}">${p.estado}</span></td>
                 <td>
@@ -382,7 +383,9 @@ async function cargarProductos() {
     }
 }
 
-function abrirModalNuevoProducto() {
+async function abrirModalNuevoProducto() {
+    const hay = await cargarOpcionesCategorias();
+    if (!hay) return;
     document.getElementById('titulo-modal-producto').textContent = 'Nuevo Producto';
     document.getElementById('form-producto').reset();
     document.getElementById('prod-id').value = '';
@@ -390,13 +393,15 @@ function abrirModalNuevoProducto() {
     document.getElementById('modal-producto').classList.add('activo');
 }
 
-function editarProducto(producto) {
+async function editarProducto(producto) {
+    const hay = await cargarOpcionesCategorias(producto.id_categoria, producto.categoria);
+    if (!hay) return;
     document.getElementById('titulo-modal-producto').textContent = 'Editar Producto';
     document.getElementById('prod-id').value = producto.id;
     document.getElementById('prod-nombre').value = producto.nombre;
     document.getElementById('prod-descripcion').value = producto.descripcion || '';
     document.getElementById('prod-precio').value = producto.precio;
-    document.getElementById('prod-categoria').value = producto.categoria;
+    document.getElementById('prod-categoria').value = String(producto.id_categoria);
     document.getElementById('prod-imagen').value = producto.imagen_url || '';
     document.getElementById('prod-estado').value = producto.estado;
     document.getElementById('modal-producto').classList.add('activo');
@@ -410,11 +415,14 @@ async function guardarProducto(e) {
     e.preventDefault();
 
     const id = document.getElementById('prod-id').value;
+    if (!document.getElementById('prod-categoria').value) {
+        return Dialogo.toast('Selecciona una categoría para el producto.', 'aviso');
+    }
     const payload = {
         nombre: document.getElementById('prod-nombre').value,
         descripcion: document.getElementById('prod-descripcion').value,
         precio: document.getElementById('prod-precio').value,
-        categoria: document.getElementById('prod-categoria').value,
+        id_categoria: Number(document.getElementById('prod-categoria').value),
         imagen_url: document.getElementById('prod-imagen').value,
         estado: document.getElementById('prod-estado').value
     };

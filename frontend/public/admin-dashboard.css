@@ -1052,3 +1052,16 @@ body.dashboard-body {
 .tabla.sin-acciones td:last-child:not([colspan]) {
     display: none;
 }
+
+/* Categorías */
+.texto-suave {
+    display: block;
+    color: #8a7672;
+    font-size: 0.82rem;
+    margin-top: 2px;
+}
+
+.ayuda-campo a {
+    color: var(--color-secundario);
+    font-weight: 600;
+}
