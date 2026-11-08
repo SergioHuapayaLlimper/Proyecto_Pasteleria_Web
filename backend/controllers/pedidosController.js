@@ -6,7 +6,7 @@
 // -----------------------------------------------------
 
 const { pool } = require('../config/db');
-const { filtroRangoFechas } = require('../utils/filtros');
+const { filtroRangoFechas, validarRangoFechas } = require('../utils/filtros');
 
 // Valores permitidos (un solo lugar para validarlos)
 const METODOS_PAGO = ['Efectivo', 'Yape'];
@@ -141,6 +141,8 @@ exports.crearPedido = async (req, res) => {
 // GET /api/pedidos -> Listar pedidos (solo admin, con filtros) - RF-19, RF-20
 exports.listarPedidos = async (req, res) => {
     const { desde, hasta, estado } = req.query;
+    const errorFechas = validarRangoFechas(desde, hasta);
+    if (errorFechas) return res.status(400).json({ mensaje: errorFechas });
 
     let sql = `
         SELECT id_pedido AS id, codigo_pedido, cliente_nombre, cliente_telefono,

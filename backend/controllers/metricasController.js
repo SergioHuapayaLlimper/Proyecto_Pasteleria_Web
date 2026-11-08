@@ -6,46 +6,51 @@
 // -----------------------------------------------------
 
 const { pool } = require('../config/db');
-const { filtroRangoFechas } = require('../utils/filtros');
+const { filtroRangoFechas, validarRangoFechas } = require('../utils/filtros');
 
-// GET /api/metricas/resumen -> Totales generales del dashboard
+// GET /api/metricas/resumen?desde=AAAA-MM-DD&hasta=AAAA-MM-DD
+// Totales del dashboard. Si se envían fechas, pedidos, ventas y consultas
+// se calculan solo dentro de ese rango (RF-05).
 exports.resumenGeneral = async (req, res) => {
+    const { desde, hasta } = req.query;
+    const errorFechas = validarRangoFechas(desde, hasta);
+    if (errorFechas) return res.status(400).json({ mensaje: errorFechas });
+
+    const f = filtroRangoFechas(desde, hasta);
+
     try {
-        // Total de pedidos
         const [[{ totalPedidos }]] = await pool.query(
-            'SELECT COUNT(*) AS totalPedidos FROM pedidos'
+            `SELECT COUNT(*) AS totalPedidos FROM pedidos WHERE 1=1 ${f.sql}`, f.params
         );
 
-        // Pedidos por estado
         const [porEstado] = await pool.query(
-            `SELECT estado, COUNT(*) AS cantidad 
-             FROM pedidos GROUP BY estado`
+            `SELECT estado, COUNT(*) AS cantidad
+             FROM pedidos WHERE 1=1 ${f.sql} GROUP BY estado`, f.params
         );
 
-        // Ventas totales (solo pedidos completados)
+        // Ventas: solo pedidos completados
         const [[{ ventasTotales }]] = await pool.query(
-            `SELECT IFNULL(SUM(total), 0) AS ventasTotales 
-             FROM pedidos WHERE estado = 'Completado'`
+            `SELECT IFNULL(SUM(total), 0) AS ventasTotales
+             FROM pedidos WHERE estado = 'Completado' ${f.sql}`, f.params
         );
 
-        // Consultas por tipo
         const [consultas] = await pool.query(
-            `SELECT tipo, COUNT(*) AS cantidad 
-             FROM consultas GROUP BY tipo`
+            `SELECT tipo, COUNT(*) AS cantidad
+             FROM consultas WHERE 1=1 ${f.sql} GROUP BY tipo`, f.params
         );
 
-        // Productos activos
+        // Productos activos: no depende de las fechas
         const [[{ totalProductos }]] = await pool.query(
-            `SELECT COUNT(*) AS totalProductos 
-             FROM productos WHERE estado = 'activo'`
+            `SELECT COUNT(*) AS totalProductos FROM productos WHERE estado = 'activo'`
         );
 
         res.json({
-            totalPedidos,
-            ventasTotales,
-            totalProductos,
-            porEstado,
-            consultas
+            totalPedidos: Number(totalPedidos),
+            ventasTotales: Number(ventasTotales),
+            totalProductos: Number(totalProductos),
+            porEstado: porEstado.map(e => ({ ...e, cantidad: Number(e.cantidad) })),
+            consultas: consultas.map(c => ({ ...c, cantidad: Number(c.cantidad) })),
+            rango: { desde: desde || null, hasta: hasta || null }
         });
     } catch (error) {
         console.error('Error al obtener resumen:', error);
@@ -56,6 +61,8 @@ exports.resumenGeneral = async (req, res) => {
 // GET /api/metricas/por-fecha?desde=...&hasta=... -> Filtro por fecha (RF-05)
 exports.metricasPorFecha = async (req, res) => {
     const { desde, hasta } = req.query;
+    const errorFechas = validarRangoFechas(desde, hasta);
+    if (errorFechas) return res.status(400).json({ mensaje: errorFechas });
 
     let sql = `
         SELECT DATE(creado_en) AS fecha,
@@ -80,6 +87,8 @@ exports.metricasPorFecha = async (req, res) => {
 // GET /api/metricas/exportar -> Datos para exportar a Excel (RF-06)
 exports.exportarMetricas = async (req, res) => {
     const { desde, hasta } = req.query;
+    const errorFechas = validarRangoFechas(desde, hasta);
+    if (errorFechas) return res.status(400).json({ mensaje: errorFechas });
 
     let sql = `
         SELECT codigo_pedido, cliente_nombre AS cliente, metodo_pago, 

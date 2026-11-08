@@ -70,6 +70,10 @@ async function actualizarPerfil() {
 
 // Oculta del menú las secciones a las que el rol no tiene acceso
 function aplicarPermisosUI() {
+    // Sin permiso para gestionar pedidos: se oculta la columna "Acciones" (ej. Contador)
+    document.getElementById('tabla-historial-pedidos')
+        .classList.toggle('sin-acciones', !tienePermiso('pedidos_estado'));
+
     document.querySelectorAll('[data-permiso]').forEach(el => {
         el.style.display = tienePermiso(el.dataset.permiso) ? '' : 'none';
     });
@@ -87,6 +91,11 @@ function primeraSeccionPermitida() {
 // ---- REFERENCIAS GLOBALES ----
 let graficoEstados = null;
 let graficoConsultas = null;
+let filtrosDashboard = null;
+let filtrosPedidos = null;
+// Evita que una respuesta lenta pise a otra más reciente al cambiar filtros rápido
+let turnoDashboard = 0;
+let turnoPedidos = 0;
 
 // ---- INICIALIZAR ----
 document.addEventListener('DOMContentLoaded', async () => {
@@ -113,6 +122,16 @@ document.addEventListener('DOMContentLoaded', async () => {
         if (ok) cerrarSesionLocal();
     });
 
+    // Barras de filtros: se actualizan solas al cambiar fechas o estado
+    filtrosDashboard = FiltrosFecha.configurar({
+        prefijo: 'dashboard', idDesde: 'filtro-desde', idHasta: 'filtro-hasta',
+        alCambiar: cargarDashboard
+    });
+    filtrosPedidos = FiltrosFecha.configurar({
+        prefijo: 'pedidos', idDesde: 'pedido-desde', idHasta: 'pedido-hasta',
+        idsExtra: ['pedido-estado'], alCambiar: cargarPedidos
+    });
+
     // Abrir la primera sección permitida para este rol
     const inicial = primeraSeccionPermitida();
     if (inicial) {
@@ -126,7 +145,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         cerrarSesionLocal();
     }
 
-    // Eventos de filtros
+    // Botones de las barras de filtros
     document.getElementById('btn-filtrar').addEventListener('click', cargarDashboard);
     document.getElementById('btn-exportar-metricas').addEventListener('click', exportarMetricas);
     document.getElementById('btn-filtrar-pedidos').addEventListener('click', cargarPedidos);
@@ -172,31 +191,81 @@ function cambiarSeccion(seccion) {
 // =====================================================
 // SECCIÓN: DASHBOARD (HU02 / RF-04, RF-05, RF-06)
 // =====================================================
+function parametrosFecha({ desde, hasta }) {
+    const params = new URLSearchParams();
+    if (desde) params.append('desde', desde);
+    if (hasta) params.append('hasta', hasta);
+    return params;
+}
+
+function hayFiltroFecha(f) {
+    return Boolean(f.desde || f.hasta);
+}
+
 async function cargarDashboard() {
+    if (!filtrosDashboard) return;
+    const filtros = filtrosDashboard.obtener();
+    if (filtros.error) return;
+
+    const turno = ++turnoDashboard;
+    const seccion = document.getElementById('seccion-dashboard');
+    seccion.classList.add('cargando');
+
     try {
-        const res = await fetchAuth('/api/metricas/resumen');
+        const res = await fetchAuth(`/api/metricas/resumen?${parametrosFecha(filtros)}`);
         const data = await res.json();
+        if (!res.ok) throw new Error(data.mensaje || 'No se pudieron cargar las métricas.');
+        if (turno !== turnoDashboard) return; // llegó una respuesta más nueva
 
         // Tarjetas
+        const totalWhatsapp = (data.consultas.find(c => c.tipo === 'whatsapp') || {}).cantidad || 0;
         document.getElementById('metrica-pedidos').textContent = data.totalPedidos;
-        document.getElementById('metrica-ventas').textContent = `S/ ${parseFloat(data.ventasTotales).toFixed(2)}`;
+        document.getElementById('metrica-ventas').textContent = `S/ ${Number(data.ventasTotales).toFixed(2)}`;
         document.getElementById('metrica-productos').textContent = data.totalProductos;
+        document.getElementById('metrica-whatsapp').textContent = totalWhatsapp;
 
-        const whatsapp = data.consultas.find(c => c.tipo === 'whatsapp');
-        document.getElementById('metrica-whatsapp').textContent = whatsapp ? whatsapp.cantidad : 0;
+        document.getElementById('dashboard-rango').innerHTML =
+            `<i class="fas fa-calendar-days"></i> Mostrando datos ${escaparHTML(filtrosDashboard.describir())}`;
 
-        // Gráficos
-        dibujarGraficoEstados(data.porEstado);
-        dibujarGraficoConsultas(data.consultas);
+        // Sin pedidos ni consultas en el rango: ocultar gráficos y mostrar aviso
+        const totalConsultas = data.consultas.reduce((a, c) => a + c.cantidad, 0);
+        const sinDatos = data.totalPedidos === 0 && totalConsultas === 0;
+        const aviso = document.getElementById('dashboard-vacio');
+        aviso.hidden = !sinDatos;
+        aviso.querySelector('h3').textContent = hayFiltroFecha(filtros)
+            ? 'No hay datos para las fechas seleccionadas'
+            : 'Aún no hay pedidos ni consultas registrados';
+        aviso.querySelector('p').textContent = hayFiltroFecha(filtros)
+            ? 'Prueba con otro rango de fechas o revisa todos los registros.'
+            : 'Cuando lleguen pedidos o consultas por WhatsApp, aparecerán aquí.';
+        aviso.querySelector('button').hidden = !hayFiltroFecha(filtros);
+        seccion.querySelector('.grid-graficos').hidden = sinDatos;
 
+        if (!sinDatos) {
+            dibujarGraficoEstados(data.porEstado);
+            dibujarGraficoConsultas(data.consultas);
+        }
     } catch (error) {
         console.error('Error al cargar dashboard:', error);
+        if (turno === turnoDashboard) Dialogo.toast(error.message, 'error');
+    } finally {
+        if (turno === turnoDashboard) seccion.classList.remove('cargando');
     }
+}
+
+// Muestra el gráfico o un mensaje si no hay datos para dibujar
+function alternarVacio(idCanvas, idVacio, vacio) {
+    document.getElementById(idCanvas).hidden = vacio;
+    document.getElementById(idVacio).hidden = !vacio;
 }
 
 function dibujarGraficoEstados(porEstado) {
     const ctx = document.getElementById('grafico-estados');
-    if (graficoEstados) graficoEstados.destroy();
+    if (graficoEstados) { graficoEstados.destroy(); graficoEstados = null; }
+
+    const vacio = !porEstado.some(e => e.cantidad > 0);
+    alternarVacio('grafico-estados', 'vacio-estados', vacio);
+    if (vacio) return;
 
     const colores = {
         Pendiente: '#ffc107',
@@ -222,48 +291,55 @@ function dibujarGraficoEstados(porEstado) {
 
 function dibujarGraficoConsultas(consultas) {
     const ctx = document.getElementById('grafico-consultas');
-    if (graficoConsultas) graficoConsultas.destroy();
+    if (graficoConsultas) { graficoConsultas.destroy(); graficoConsultas = null; }
 
+    const vacio = !consultas.some(c => c.cantidad > 0);
+    alternarVacio('grafico-consultas', 'vacio-consultas', vacio);
+    if (vacio) return;
+
+    const nombres = { whatsapp: 'WhatsApp', pedido: 'Pedidos web' };
     graficoConsultas = new Chart(ctx, {
         type: 'bar',
         data: {
-            labels: consultas.map(c => c.tipo),
+            labels: consultas.map(c => nombres[c.tipo] || c.tipo),
             datasets: [{
                 label: 'Cantidad',
                 data: consultas.map(c => c.cantidad),
-                backgroundColor: ['#25d366', '#17a2b8', '#8b5a5a']
+                backgroundColor: ['#25d366', '#17a2b8', '#8b5a5a'],
+                borderRadius: 6
             }]
         },
         options: {
             responsive: true,
             plugins: { legend: { display: false } },
-            scales: { y: { beginAtZero: true } }
+            scales: { y: { beginAtZero: true, ticks: { precision: 0 } } }
         }
     });
 }
 
 async function exportarMetricas() {
-    const desde = document.getElementById('filtro-desde').value;
-    const hasta = document.getElementById('filtro-hasta').value;
+    const filtros = filtrosDashboard.obtener();
+    if (filtros.error) return Dialogo.toast(filtros.error, 'aviso');
 
     try {
-        const res = await fetchAuth(`/api/metricas/exportar?desde=${desde}&hasta=${hasta}`);
+        const res = await fetchAuth(`/api/metricas/exportar?${parametrosFecha(filtros)}`);
         const datos = await res.json();
+        if (!res.ok) throw new Error(datos.mensaje || 'No se pudo exportar el reporte.');
 
         if (!datos.length) {
-            Dialogo.toast('No hay datos para exportar en el rango seleccionado.', 'aviso');
+            Dialogo.toast('No hay datos para exportar en las fechas seleccionadas.', 'aviso');
             return;
         }
 
         await descargarExcel(datos, 'Reporte_Jorby', {
             titulo: 'Reporte de Ventas',
             nombreHoja: 'Detalle',
-            filtros: { desde, hasta }
+            filtros: { desde: filtros.desde, hasta: filtros.hasta }
         });
         Dialogo.toast('Reporte exportado correctamente.', 'exito');
     } catch (error) {
         console.error('Error al exportar:', error);
-        Dialogo.toast('No se pudo exportar el reporte.', 'error');
+        Dialogo.toast(error.message || 'No se pudo exportar el reporte.', 'error');
     }
 }
 
@@ -391,40 +467,68 @@ async function desactivarProducto(id) {
 // SECCIÓN: PEDIDOS (HU07 / RF-19, RF-20, RF-21)
 // =====================================================
 // Lee los filtros de la sección Pedidos y los devuelve como parámetros de URL.
+// Devuelve los parámetros de filtro de Pedidos, o null si las fechas no son válidas
 function obtenerFiltrosPedidos() {
-    const desde = document.getElementById('pedido-desde').value;
-    const hasta = document.getElementById('pedido-hasta').value;
-    const estado = document.getElementById('pedido-estado').value;
+    const filtros = filtrosPedidos ? filtrosPedidos.obtener() : { desde: '', hasta: '' };
+    if (filtros.error) return null;
 
-    const params = new URLSearchParams();
-    if (desde) params.append('desde', desde);
-    if (hasta) params.append('hasta', hasta);
+    const params = parametrosFecha(filtros);
+    const estado = document.getElementById('pedido-estado').value;
     if (estado) params.append('estado', estado);
     return params;
 }
 
 async function cargarPedidos() {
     const params = obtenerFiltrosPedidos();
+    if (!params) return;
+
+    const turno = ++turnoPedidos;
+    const tbody = document.getElementById('tabla-pedidos');
+    const seccion = document.getElementById('seccion-pedidos');
+    seccion.classList.add('cargando');
 
     try {
         const res = await fetchAuth(`/api/pedidos?${params.toString()}`);
         const pedidos = await res.json();
-        const tbody = document.getElementById('tabla-pedidos');
+        if (!res.ok) throw new Error(pedidos.mensaje || 'No se pudieron cargar los pedidos.');
+        if (turno !== turnoPedidos) return;
+
+        // Resumen del resultado: cantidad, monto y rango aplicado
+        const estado = document.getElementById('pedido-estado').value;
+        const total = pedidos.reduce((a, p) => a + Number(p.monto_total || 0), 0);
+        document.getElementById('pedidos-rango').innerHTML =
+            `<i class="fas fa-calendar-days"></i> ${pedidos.length} pedido(s)` +
+            `${estado ? ` en estado <strong>${escaparHTML(estado)}</strong>` : ''}` +
+            ` · Total S/ ${total.toFixed(2)} · ${escaparHTML(filtrosPedidos.describir())}`;
 
         if (!pedidos.length) {
-            tbody.innerHTML = '<tr><td colspan="8" style="text-align:center; padding:30px;">No hay pedidos.</td></tr>';
+            const hayFiltros = params.toString() !== '';
+            tbody.innerHTML = `
+                <tr><td colspan="8">
+                    <div class="estado-vacio en-tabla">
+                        <i class="fas fa-calendar-xmark"></i>
+                        <h3>${hayFiltros ? 'No hay pedidos para los filtros seleccionados' : 'Aún no hay pedidos registrados'}</h3>
+                        <p>${hayFiltros ? 'Prueba con otro rango de fechas u otro estado.' : 'Los pedidos de la web aparecerán aquí.'}</p>
+                        ${hayFiltros ? '<button type="button" class="btn-secundario" data-ver-todo-pedidos>Ver todos los pedidos</button>' : ''}
+                    </div>
+                </td></tr>`;
+            const btn = tbody.querySelector('[data-ver-todo-pedidos]');
+            if (btn) btn.addEventListener('click', () => {
+                document.getElementById('pedido-estado').value = '';
+                filtrosPedidos.aplicarRango('todo');
+            });
             return;
         }
 
         tbody.innerHTML = pedidos.map(p => `
             <tr>
-                <td><strong>${p.codigo_pedido}</strong></td>
-                <td>${p.cliente_nombre}</td>
-                <td>${p.cliente_telefono}</td>
-                <td>${p.metodo_pago}</td>
+                <td><strong>${escaparHTML(p.codigo_pedido)}</strong></td>
+                <td>${escaparHTML(p.cliente_nombre)}</td>
+                <td>${escaparHTML(p.cliente_telefono || '-')}</td>
+                <td>${escaparHTML(p.metodo_pago)}</td>
                 <td>S/ ${parseFloat(p.monto_total).toFixed(2)}</td>
                 <td><span class="badge badge-${p.estado.toLowerCase()}">${p.estado}</span></td>
-                <td>${new Date(p.creado_en).toLocaleDateString('es-PE')}</td>
+                <td>${new Date(p.creado_en).toLocaleString('es-PE', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' })}</td>
                 <td>
                     ${p.estado === 'Pendiente' && tienePermiso('pedidos_estado') ? `
                         <button class="btn-sm btn-completar" onclick="cambiarEstadoPedido(${p.id}, 'Completado')">
@@ -440,6 +544,9 @@ async function cargarPedidos() {
 
     } catch (error) {
         console.error('Error al cargar pedidos:', error);
+        if (turno === turnoPedidos) Dialogo.toast(error.message, 'error');
+    } finally {
+        if (turno === turnoPedidos) seccion.classList.remove('cargando');
     }
 }
 
@@ -471,10 +578,12 @@ async function cambiarEstadoPedido(id, nuevoEstado) {
 
 async function exportarPedidos() {
     const params = obtenerFiltrosPedidos();
+    if (!params) return Dialogo.toast('Revisa el rango de fechas antes de exportar.', 'aviso');
 
     try {
         const res = await fetchAuth(`/api/pedidos?${params.toString()}`);
         const pedidos = await res.json();
+        if (!res.ok) throw new Error(pedidos.mensaje || 'No se pudo exportar los pedidos.');
 
         if (!pedidos.length) {
             Dialogo.toast('No hay pedidos para exportar con los filtros actuales.', 'aviso');
@@ -489,7 +598,7 @@ async function exportarPedidos() {
         Dialogo.toast('Pedidos exportados correctamente.', 'exito');
     } catch (error) {
         console.error('Error al exportar:', error);
-        Dialogo.toast('No se pudo exportar los pedidos.', 'error');
+        Dialogo.toast(error.message || 'No se pudo exportar los pedidos.', 'error');
     }
 }
 
