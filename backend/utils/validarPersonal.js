@@ -15,6 +15,7 @@ const PERMISOS = [
 ];
 
 const CLAVES_PERMISOS = PERMISOS.map(p => p.clave);
+const { normalizarTelefono, esCelularPeru, MENSAJE_TELEFONO_INVALIDO } = require('./telefono');
 const REGEX_CORREO = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
 // Contraseña: mínimo 8 caracteres, al menos una letra y un número
@@ -66,7 +67,7 @@ function validarUsuario(entrada = {}, { esNuevo = false } = {}) {
     const errores = [];
     const nombre = String(entrada.nombre ?? '').trim();
     const email = String(entrada.email ?? '').trim().toLowerCase();
-    const telefono = String(entrada.telefono ?? '').replace(/\D/g, '');
+    const telefono = normalizarTelefono(entrada.telefono);
     const idRol = Number(entrada.id_rol);
     const password = entrada.password ?? '';
     const activo = entrada.activo === undefined ? true : Boolean(entrada.activo);
@@ -77,8 +78,8 @@ function validarUsuario(entrada = {}, { esNuevo = false } = {}) {
     if (!REGEX_CORREO.test(email) || email.length > 100) {
         errores.push('Ingresa un correo electrónico válido.');
     }
-    if (telefono && (telefono.length < 9 || telefono.length > 15)) {
-        errores.push('El teléfono debe tener entre 9 y 15 dígitos.');
+    if (telefono && !esCelularPeru(telefono)) {
+        errores.push(MENSAJE_TELEFONO_INVALIDO);
     }
     if (!Number.isInteger(idRol) || idRol <= 0) {
         errores.push('Selecciona un rol válido.');

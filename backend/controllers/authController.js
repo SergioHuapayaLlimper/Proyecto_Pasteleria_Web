@@ -14,6 +14,28 @@ const { cargarUsuarioConRol } = require('../middleware/auth');
 const MAX_INTENTOS_FALLIDOS = 5;
 const MINUTOS_BLOQUEO = 5;
 
+// Segundos que faltan para que termine el bloqueo (0 si no está bloqueada)
+function segundosRestantesBloqueo(bloqueadoHasta, ahora = new Date()) {
+    if (!bloqueadoHasta) return 0;
+    return Math.max(0, Math.ceil((new Date(bloqueadoHasta) - ahora) / 1000));
+}
+
+// "200" -> "3 min 20 s"
+function formatearTiempo(segundos) {
+    const min = Math.floor(segundos / 60);
+    const seg = segundos % 60;
+    if (!min) return `${seg} s`;
+    return seg ? `${min} min ${seg} s` : `${min} min`;
+}
+
+function responderBloqueo(res, segundos) {
+    return res.status(423).json({
+        mensaje: `Cuenta bloqueada por superar los ${MAX_INTENTOS_FALLIDOS} intentos permitidos. Inténtalo en ${formatearTiempo(segundos)}.`,
+        segundosRestantes: segundos,
+        bloqueado: true
+    });
+}
+
 // Suma un intento fallido al usuario y, si llega al máximo, bloquea la cuenta.
 // Devuelve el total de intentos fallidos acumulados.
 async function registrarIntentoFallido(user) {
@@ -54,11 +76,10 @@ exports.login = async (req, res) => {
 
         const user = rows[0];
 
-        // Verificar si la cuenta está bloqueada (RF-03)
-        if (user.bloqueado_hasta && new Date(user.bloqueado_hasta) > new Date()) {
-            return res.status(423).json({ 
-                mensaje: `Superaste el número de intentos permitidos. Cuenta bloqueada por ${MINUTOS_BLOQUEO} minutos.` 
-            });
+        // Verificar si la cuenta está bloqueada (RF-03): se informa el tiempo restante
+        const segundosBloqueo = segundosRestantesBloqueo(user.bloqueado_hasta);
+        if (segundosBloqueo > 0) {
+            return responderBloqueo(res, segundosBloqueo);
         }
 
         // Verificar contraseña
@@ -67,6 +88,11 @@ exports.login = async (req, res) => {
         if (!passwordValido) {
             // Incrementar intentos fallidos (y bloquear si corresponde)
             const intentos = await registrarIntentoFallido(user);
+
+            // Este intento completó el máximo: la cuenta queda bloqueada desde ahora
+            if (intentos >= MAX_INTENTOS_FALLIDOS) {
+                return responderBloqueo(res, MINUTOS_BLOQUEO * 60);
+            }
 
             return res.status(401).json({ 
                 mensaje: 'Usuario o contraseña incorrectos',
@@ -117,3 +143,7 @@ exports.perfil = (req, res) => {
     const { id, nombre, email, rol, esAdmin, permisos } = req.usuario;
     res.json({ id, nombre, email, rol, esAdmin, permisos });
 };
+
+// Exportadas para pruebas unitarias
+exports.segundosRestantesBloqueo = segundosRestantesBloqueo;
+exports.formatearTiempo = formatearTiempo;

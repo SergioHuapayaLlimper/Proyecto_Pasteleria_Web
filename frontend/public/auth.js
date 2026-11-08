@@ -48,6 +48,44 @@ document.addEventListener('DOMContentLoaded', () => {
         loginError.style.display = 'none';
     }
 
+    // ---- BLOQUEO CON CUENTA REGRESIVA (RF-03) ----
+    let temporizadorBloqueo = null;
+
+    // 200 -> "3 min 20 s"
+    function formatearTiempo(segundos) {
+        const min = Math.floor(segundos / 60);
+        const seg = segundos % 60;
+        if (!min) return `${seg} s`;
+        return seg ? `${min} min ${seg} s` : `${min} min`;
+    }
+
+    function iniciarCuentaRegresiva(segundos) {
+        clearInterval(temporizadorBloqueo);
+        const fin = Date.now() + segundos * 1000;
+        btnLogin.disabled = true;
+
+        const actualizar = () => {
+            const restantes = Math.max(0, Math.ceil((fin - Date.now()) / 1000));
+            if (restantes === 0) {
+                clearInterval(temporizadorBloqueo);
+                loginError.classList.remove('bloqueo');
+                ocultarError();
+                restaurarBotonLogin();
+                return;
+            }
+            btnLogin.innerHTML = `<i class="fas fa-lock"></i> Bloqueado (${formatearTiempo(restantes)})`;
+            loginError.innerHTML = '<i class="fas fa-lock"></i>';
+            loginError.appendChild(document.createTextNode(
+                ` Cuenta bloqueada por superar los intentos permitidos. Inténtalo en ${formatearTiempo(restantes)}.`
+            ));
+            loginError.classList.add('bloqueo');
+            loginError.style.display = 'flex';
+        };
+
+        actualizar();
+        temporizadorBloqueo = setInterval(actualizar, 1000);
+    }
+
     // Deja el botón de login en su estado original
     function restaurarBotonLogin() {
         btnLogin.disabled = false;
@@ -81,11 +119,19 @@ document.addEventListener('DOMContentLoaded', () => {
             const data = await res.json();
 
             // Si hay error, mostrar mensaje y salir
+            // Cuenta bloqueada: mostrar tiempo restante en vivo
+            if (res.status === 423 && data.segundosRestantes) {
+                iniciarCuentaRegresiva(data.segundosRestantes);
+                return;
+            }
+
             if (!res.ok) {
                 let mensaje = data.mensaje || 'Credenciales incorrectas.';
 
                 if (data.intentosRestantes !== undefined) {
-                    mensaje += ` Te quedan ${data.intentosRestantes} intentos.`;
+                    mensaje += data.intentosRestantes === 1
+                        ? ' Te queda 1 intento antes del bloqueo.'
+                        : ` Te quedan ${data.intentosRestantes} intentos.`;
                 }
 
                 mostrarError(mensaje);

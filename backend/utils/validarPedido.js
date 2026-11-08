@@ -6,6 +6,7 @@
 // -----------------------------------------------------
 
 const { esFechaValida } = require('./filtros');
+const { normalizarTelefono, esCelularPeru, MENSAJE_TELEFONO_INVALIDO } = require('./telefono');
 
 const METODOS_PAGO = ['Efectivo', 'Yape'];
 const MODOS_ENTREGA = ['Delivery', 'Recojo en tienda'];
@@ -27,7 +28,7 @@ function sumarDias(iso, dias) {
 // Devuelve { datos, error }. error es null si todo es válido.
 function validarPedido(entrada = {}, hoy = hoyEnPeru()) {
     const nombre = String(entrada.cliente_nombre ?? '').trim();
-    const telefono = String(entrada.cliente_telefono ?? '').trim();
+    const telefono = normalizarTelefono(entrada.cliente_telefono);
     const metodoPago = entrada.metodo_pago;
     const productos = entrada.productos;
     const modoEntrega = entrada.modo_entrega;
@@ -48,8 +49,8 @@ function validarPedido(entrada = {}, hoy = hoyEnPeru()) {
     if (!MODOS_ENTREGA.includes(modoEntrega)) {
         return { datos, error: 'Selecciona un modo de entrega válido (Delivery o Recojo en tienda).' };
     }
-    if (telefono.replace(/\D/g, '').length < 9) {
-        return { datos, error: 'El teléfono debe tener al menos 9 dígitos.' };
+    if (!esCelularPeru(telefono)) {
+        return { datos, error: MENSAJE_TELEFONO_INVALIDO };
     }
     if (!METODOS_PAGO.includes(metodoPago)) {
         return { datos, error: 'Método de pago no válido.' };

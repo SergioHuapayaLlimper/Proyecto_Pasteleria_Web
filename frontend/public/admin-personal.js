@@ -273,6 +273,14 @@ async function guardarUsuario(e) {
     // Validaciones rápidas en el navegador (el servidor vuelve a validar)
     if (payload.nombre.length < 3) return mostrarErrorModal('usr-error', 'Ingresa el nombre completo.');
     if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(payload.email)) return mostrarErrorModal('usr-error', 'Ingresa un correo válido.');
+    if (payload.telefono) {
+        let digitos = payload.telefono.replace(/\D/g, '');
+        if (digitos.length === 11 && digitos.startsWith('51')) digitos = digitos.slice(2);
+        if (!/^9\d{8}$/.test(digitos)) {
+            return mostrarErrorModal('usr-error', 'El teléfono debe ser un celular de 9 dígitos que empiece con 9.');
+        }
+        payload.telefono = digitos;
+    }
     if (!id && !password) return mostrarErrorModal('usr-error', 'La contraseña es obligatoria para una cuenta nueva.');
     if (password !== password2) return mostrarErrorModal('usr-error', 'Las contraseñas no coinciden.');
 

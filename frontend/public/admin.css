@@ -365,3 +365,10 @@
 @media (prefers-reduced-motion: reduce) {
     .login-card, .login-error { animation: none; }
 }
+
+/* Cuenta bloqueada: aviso en tono de advertencia, sin animación repetida */
+.login-error.bloqueo {
+    background: #fff4e5;
+    color: #8a5300;
+    animation: none;
+}

@@ -210,9 +210,15 @@ function prepararFechaEntrega() {
 }
 
 // ---- VALIDAR TELÉFONO (RF-25) ----
+// Celular de Perú: 9 dígitos que empiezan con 9. Acepta espacios, guiones y +51.
+function normalizarTelefono(telefono) {
+    let digitos = String(telefono || '').replace(/\D/g, '');
+    if (digitos.length === 11 && digitos.startsWith('51')) digitos = digitos.slice(2);
+    return digitos;
+}
+
 function validarTelefono(telefono) {
-    const limpio = telefono.replace(/\D/g, '');
-    return limpio.length >= 9;
+    return /^9\d{8}$/.test(normalizarTelefono(telefono));
 }
 
 // ---- ENVIAR PEDIDO ----
@@ -237,7 +243,7 @@ async function enviarPedido(e) {
     }
 
     if (!validarTelefono(telefono)) {
-        mostrarErrorCheckout('El teléfono debe tener al menos 9 dígitos.');
+        mostrarErrorCheckout('Ingresa un celular válido: 9 dígitos que empiecen con 9 (ej: 987654321).');
         return;
     }
 
@@ -259,7 +265,7 @@ async function enviarPedido(e) {
     // Armar payload
     const payload = {
         cliente_nombre: nombre,
-        cliente_telefono: telefono,
+        cliente_telefono: normalizarTelefono(telefono),
         metodo_pago: metodoPago,
         modo_entrega: modoEntrega,
         direccion_entrega: direccion,
