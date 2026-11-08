@@ -16,7 +16,11 @@ const pool = mysql.createPool({
   waitForConnections: true,
   connectionLimit: 10,
   queueLimit: 0,
-  timezone: ZONA_HORARIA
+  timezone: ZONA_HORARIA,
+  // Bases en la nube (TiDB Cloud, etc.) exigen conexión cifrada: DB_SSL=true
+  ssl: process.env.DB_SSL === 'true'
+    ? { minVersion: 'TLSv1.2', rejectUnauthorized: true }
+    : undefined
 });
 
 // Cada conexión nueva trabaja en la zona horaria del negocio

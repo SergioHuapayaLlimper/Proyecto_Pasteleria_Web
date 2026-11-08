@@ -111,9 +111,9 @@ document.addEventListener('DOMContentLoaded', () => {
                         <p class="ubicacion-direccion">
                             <i class="fas fa-map-marker-alt"></i> ${escaparHTML(config.direccion)}
                         </p>
-                        <a href="https://www.google.com/maps/dir/?api=1&destination=${lat},${lng}" 
+                        <a href="https://www.google.com/maps/search/?api=1&query=${lat},${lng}" 
                            target="_blank" rel="noopener" class="btn-mapa">
-                            <i class="fas fa-directions"></i> Abrir en Google Maps
+                            <i class="fas fa-map-location-dot"></i> Abrir en Google Maps
                         </a>
                     </div>
                 `;

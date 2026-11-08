@@ -34,3 +34,7 @@ Claude outputs/
 
 # Respaldos locales de la BD (contienen datos reales)
 respaldo*.sql
+
+# Copia generada del frontend para Vercel (scripts/preparar-vercel.js)
+/public/
+.vercel/

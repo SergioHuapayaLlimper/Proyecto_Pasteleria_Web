@@ -1,0 +1,23 @@
+{
+  "name": "jorby-pasteleria",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Pastelería Jorby - despliegue en Vercel (la app vive en backend/ y frontend/)",
+  "main": "index.js",
+  "type": "commonjs",
+  "engines": {
+    "node": "22.x"
+  },
+  "scripts": {
+    "build": "node scripts/preparar-vercel.js",
+    "migrar": "node backend/migrar.js"
+  },
+  "dependencies": {
+    "bcryptjs": "^2.4.3",
+    "cors": "^2.8.5",
+    "dotenv": "^16.4.5",
+    "express": "^4.19.2",
+    "jsonwebtoken": "^9.0.2",
+    "mysql2": "^3.10.0"
+  }
+}

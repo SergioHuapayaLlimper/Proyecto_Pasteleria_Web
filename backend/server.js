@@ -1,40 +1,12 @@
+// server.js
 // -----------------------------------------------------
-// -----------------------------------------------------
-// Punto de entrada del backend. Levanta el servidor Express,
-// conecta con MySQL y registra las rutas de la API.
+// Arranque en Docker / local: aplica las migraciones pendientes
+// y levanta el servidor. (En Vercel se usa index.js de la raíz.)
 // -----------------------------------------------------
 
-const express = require('express');
-const cors = require('cors');
-const path = require('path');
-require('dotenv').config();
-
+const app = require('./app');
 const { probarConexion } = require('./config/db');
 const { ejecutarMigraciones } = require('./migrar');
-const authRoutes = require('./routes/authRoutes');
-const productosRoutes = require('./routes/productosRoutes');
-const configRoutes = require('./routes/configRoutes');
-const pedidosRoutes = require('./routes/pedidosRoutes');
-const metricasRoutes = require('./routes/metricasRoutes');
-const personalRoutes = require('./routes/personalRoutes');
-const categoriasRoutes = require('./routes/categoriasRoutes');
-
-const app = express();
-
-app.use(cors());
-app.use(express.json());
-
-// Sirve el frontend (carpeta frontend/public) como sitio estatico.
-app.use(express.static(path.join(__dirname, '..', 'frontend', 'public')));
-
-// ---- Rutas de la API ----
-app.use('/api/auth', authRoutes);
-app.use('/api/productos', productosRoutes);
-app.use('/api/config', configRoutes); 
-app.use('/api/pedidos', pedidosRoutes);
-app.use('/api/metricas', metricasRoutes);
-app.use('/api/personal', personalRoutes);
-app.use('/api/categorias', categoriasRoutes);
 
 const PORT = process.env.PORT || 3000;
 
