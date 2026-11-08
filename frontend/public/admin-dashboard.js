@@ -54,6 +54,28 @@ function escaparHTML(valor) {
         .replace(/"/g, '&quot;').replace(/'/g, '&#39;');
 }
 
+// En celular las tablas se muestran como tarjetas: cada celda necesita
+// saber el nombre de su columna (data-label) para mostrarlo como título.
+function etiquetarTabla(tabla) {
+    const titulos = [...tabla.querySelectorAll('thead th')].map(th => th.textContent.trim());
+    tabla.querySelectorAll('tbody tr').forEach(tr => {
+        [...tr.children].forEach((td, i) => {
+            if (!td.hasAttribute('colspan') && titulos[i]) td.dataset.label = titulos[i];
+        });
+    });
+}
+
+// Etiqueta automáticamente cada tabla cuando su contenido cambia
+new MutationObserver((cambios) => {
+    const tablas = new Set();
+    cambios.forEach(c => {
+        const tabla = c.target.closest && c.target.closest('table.tabla');
+        if (tabla) tablas.add(tabla);
+        c.addedNodes.forEach(n => n.querySelectorAll && n.querySelectorAll('table.tabla').forEach(t => tablas.add(t)));
+    });
+    tablas.forEach(etiquetarTabla);
+}).observe(document.documentElement, { childList: true, subtree: true });
+
 // Obtiene el perfil actualizado (rol y permisos) desde el servidor
 async function actualizarPerfil() {
     try {
@@ -156,6 +178,13 @@ document.addEventListener('DOMContentLoaded', async () => {
     // Formulario de configuración
     document.getElementById('form-config').addEventListener('submit', guardarConfiguracion);
 
+    // Menú lateral en celular
+    document.getElementById('btn-menu-admin').addEventListener('click', () =>
+        abrirMenuMovil(!document.getElementById('sidebar').classList.contains('abierta')));
+    document.getElementById('sidebar-overlay').addEventListener('click', () => abrirMenuMovil(false));
+    document.addEventListener('keydown', (e) => { if (e.key === 'Escape') abrirMenuMovil(false); });
+    window.matchMedia('(min-width: 901px)').addEventListener('change', (e) => { if (e.matches) abrirMenuMovil(false); });
+
     // Detalle del pedido: cerrar con la X, clic fuera o Esc
     const modalDetalle = document.getElementById('modal-detalle-pedido');
     document.getElementById('cerrar-detalle-pedido').addEventListener('click', cerrarDetallePedido);
@@ -175,9 +204,19 @@ const CARGADORES_SECCION = {
     roles: () => cargarRoles()
 };
 
+// ---- MENÚ LATERAL EN CELULAR ----
+function abrirMenuMovil(abrir) {
+    document.getElementById('sidebar').classList.toggle('abierta', abrir);
+    document.getElementById('sidebar-overlay').classList.toggle('visible', abrir);
+    document.getElementById('btn-menu-admin').setAttribute('aria-expanded', abrir);
+    document.body.classList.toggle('menu-abierto', abrir);
+}
+
 function cambiarSeccion(seccion) {
     const item = document.querySelector(`.nav-item[data-seccion="${seccion}"]`);
     if (!item || !tienePermiso(item.dataset.permiso)) return;
+    abrirMenuMovil(false);
+    document.getElementById('topbar-seccion').textContent = item.textContent.trim();
 
     document.querySelectorAll('.nav-item').forEach(b => b.classList.remove('activo'));
     document.querySelectorAll('.seccion').forEach(s => s.classList.remove('activa'));

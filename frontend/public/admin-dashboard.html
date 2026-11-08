@@ -14,8 +14,18 @@
 </head>
 <body class="dashboard-body">
 
+    <!-- BARRA SUPERIOR (solo en celular/tablet) -->
+    <header class="topbar-movil">
+        <button type="button" class="btn-menu-admin" id="btn-menu-admin" aria-label="Abrir menú" aria-expanded="false" aria-controls="sidebar">
+            <i class="fas fa-bars"></i>
+        </button>
+        <span class="topbar-logo"><i class="fas fa-birthday-cake"></i> Jorby Admin</span>
+        <span class="topbar-seccion" id="topbar-seccion"></span>
+    </header>
+    <div class="sidebar-overlay" id="sidebar-overlay"></div>
+
     <!-- SIDEBAR -->
-    <aside class="sidebar">
+    <aside class="sidebar" id="sidebar">
         <div class="sidebar-logo">
             <i class="fas fa-birthday-cake"></i>
             <span>Jorby Admin</span>
